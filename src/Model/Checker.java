@@ -2,6 +2,10 @@ package Model;
 
 import java.sql.Time;
 import java.util.Random;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * 乘客安检的时间长短由随机数产生，范围在MinTimeLen到MaxTimeLen之间，
@@ -35,15 +39,34 @@ public class Checker extends Thread {
     }
 
     // private data
+    private ReentrantReadWriteLock readWriteLock;
+    private Lock readLock;
+    private Lock writeLock;
+
     private int person;         // 正在排队的数目
-    public synchronized void addPerson() {
-        ++person;
+    public Checker() {
+        person = 0;
+        readWriteLock = new ReentrantReadWriteLock();
+        readLock = readWriteLock.readLock();
+        writeLock = readWriteLock.writeLock();
     }
-    public synchronized void popPerson() {
-        --person;
-        // DEBUG
-        if (person < 0) {
-            throw new RuntimeException("Person < 0!!!");
+
+    public void addPerson() {
+        writeLock.lock();
+        try {
+            ++person;
+        } finally { writeLock.unlock(); }
+    }
+    public void popPerson() {
+        writeLock.lock();
+        try {
+            --person;
+            // DEBUG
+            if (person < 0) {
+                throw new RuntimeException("Person < 0!!!");
+            }
+        } finally {
+            writeLock.lock();
         }
     }
 
@@ -52,7 +75,12 @@ public class Checker extends Thread {
      * TODO: find out if you need lock here
      */
     public int getPerson() {
-        return person;
+        readLock.lock();
+        try {
+            return person;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     Random random = new Random();
