@@ -21,7 +21,11 @@ public class CheckerManager {
         }
     }
 
-    public boolean addPerson() {
+    /**
+     * 添加角色
+     */
+    public synchronized void addPerson() {
+        int[] curPersons = new int[checkerNum];
         for (int i = 0; i < checkerNum; i++) {
 
         }

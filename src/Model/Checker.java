@@ -54,6 +54,7 @@ public class Checker extends Thread {
     private void addPerson() {
         writeLock.lock();
         try {
+
             ++person;
         } finally { writeLock.unlock(); }
     }
