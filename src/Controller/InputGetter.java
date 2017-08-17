@@ -3,6 +3,7 @@
  */
 package Controller;
 
+import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -28,12 +29,16 @@ public class InputGetter extends Thread {
 
     @Override
     public void run() {
+        System.out.println("Run start.");
         while (true) {
-            Character code = in.next().charAt(0);
+            String[] codes = in.nextLine().split(" ");
+            Character code = codes[0].charAt(0);
+
             Command cmd = commandMap.get(code);
-            if (in.hasNextInt()) {
-                int value = in.nextInt();
-                cmd.excute();
+            System.out.println("Got it.");
+            if (codes.length == 2) {
+                int value = Integer.parseInt(codes[1]);
+                cmd.excute(value);
             } else {
                 cmd.excute();
             }
