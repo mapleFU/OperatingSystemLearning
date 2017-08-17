@@ -8,8 +8,10 @@ public class CheckerManager {
     // Data
     private Checker[] checkers;
     private Thread[] threads;
+    private WaitInLineBuffer buffer;
 
-    public CheckerManager() {
+    public CheckerManager(WaitInLineBuffer buffer) {
+        this.buffer = buffer;
         checkers = new Checker[checkerNum];
         for (int i = 0; i < checkerNum; i++) {
             threads[i] = new Thread(checkers[i]);
@@ -20,6 +22,8 @@ public class CheckerManager {
     }
 
     public boolean addPerson() {
+        for (int i = 0; i < checkerNum; i++) {
 
+        }
     }
 }

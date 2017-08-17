@@ -51,13 +51,13 @@ public class Checker extends Thread {
         writeLock = readWriteLock.writeLock();
     }
 
-    public void addPerson() {
+    private void addPerson() {
         writeLock.lock();
         try {
             ++person;
         } finally { writeLock.unlock(); }
     }
-    public void popPerson() {
+    private void popPerson() {
         writeLock.lock();
         try {
             --person;
@@ -74,7 +74,7 @@ public class Checker extends Thread {
      * @return person waiting in line
      * TODO: find out if you need lock here
      */
-    public int getPerson() {
+    private int getPerson() {
         readLock.lock();
         try {
             return person;
@@ -83,6 +83,20 @@ public class Checker extends Thread {
         }
     }
 
+    public boolean checkAndAddPerson() {
+        writeLock.lock();
+        try {
+            // full
+            if (getPerson() == 6) {
+                return false;
+            } else {
+                addPerson();
+                return true;
+            }
+        } finally {
+            writeLock.unlock();
+        }
+    }
     Random random = new Random();
 
     private int getRandomCheck() {
