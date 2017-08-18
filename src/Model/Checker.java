@@ -75,7 +75,7 @@ public class Checker extends Thread {
      * @return person waiting in line
      * TODO: find out if you need lock here
      */
-    private int getPerson() {
+    public int getPerson() {
         readLock.lock();
         try {
             return person;
