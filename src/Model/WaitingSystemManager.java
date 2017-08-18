@@ -15,7 +15,7 @@ public class WaitingSystemManager {
     private WaitInLineBuffer buffer;
 
 
-    public WaitingSystemManager(WaitInLineBuffer buffer, Checker[] checkers) {
+    public WaitingSystemManager(WaitInLineBuffer buffer, Checker[] checkers)  {
         this.buffer = buffer;
         this.checkers = checkers;
         for (int i = 0; i < checkerNum; i++) {
@@ -63,5 +63,22 @@ public class WaitingSystemManager {
      */
     public synchronized void addPersonToBuffer() {
         buffer.addInBuffer();
+    }
+
+    private synchronized void popPersonInBuffer() {
+        while (true) {
+            if (buffer.popInBuffer()) {
+                break;
+            }
+        }
+
+    }
+
+    /**
+     * 任务加到CHECKERS中
+     */
+    public void GoToChecker() {
+        popPersonInBuffer();
+        addPersonToCheckers();
     }
 }
