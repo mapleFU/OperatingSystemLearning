@@ -1,18 +1,19 @@
-from LiftState import LiftState
-from LiftController import LiftController
-from Job import Job
-from Task import Task
-
 import json
 from threading import Thread, Lock, RLock
 from time import sleep
-from typing import Tuple, List
+from typing import Tuple, List, TYPE_CHECKING
+
+from LiftUtils.LiftState import LiftState
+
+if TYPE_CHECKING:
+    from LiftUtils.LiftController import LiftController
+    from LiftUtils.Job import Job
 
 
 class Lift:
     FLOOR_STEP_TIME = 1
     _class_lock: Lock = Lock()
-    lift_objects: List[Job] = []
+    lift_objects: 'List[Job]' = []
 
     def _emit(self, *args, **kwargs)->None:
         """
@@ -23,7 +24,7 @@ class Lift:
         self._controller.emit(*args, **kwargs)
 
     @staticmethod
-    def choose_best(init_job: Job)->bool:
+    def choose_best(init_job: 'Job')->bool:
         """
         :param init_job: 初始化的任务
         :return: 挑选是否成功
@@ -55,7 +56,7 @@ class Lift:
         with self._state_lock:
             return self._state
 
-    def __init__(self, lnum: int, controller: LiftController=None):
+    def __init__(self, lnum: int, controller: 'LiftController'=None):
         with self._class_lock:
             self.lift_objects.append(self)
         # 是一个常量！
@@ -88,9 +89,9 @@ class Lift:
     def __str__(self):
         return 'Lift({})'.format(self.LNUM)
 
-    def add_job(self, new_job: Job):
+    def add_job(self, new_job: 'Job'):
         """
-        :param job: 给电梯添加一个新的 从XX到XX的工作
+        :param new_job: 给电梯添加一个新的 从XX到XX的工作
         :return:
         """
         with self._state_lock:
@@ -121,7 +122,7 @@ class Lift:
         """
         self._controller.emit('lift change', self.status())
 
-    def allow_job(self, job: Job)->bool:
+    def allow_job(self, job: 'Job')->bool:
         raise NotImplemented()
 
     def _running_task(self, step: int):
@@ -138,7 +139,7 @@ class Lift:
             self._state = LiftState.REST
             self._farest = None
 
-    def _start_task(self, step: int, job: Job, state: LiftState):
+    def _start_task(self, step: int, job: 'Job', state: 'LiftState'):
         with self._task_lock:
             if self._state != LiftState.REST:
                 raise RuntimeError(f"state in {str(self)} is not {LiftState.REST} when calling go_up")
@@ -147,7 +148,7 @@ class Lift:
                 self._farest = job
                 self._running_task(step)
 
-    def _begin_to_go_up(self, farest: Job):
+    def _begin_to_go_up(self, farest: 'Job'):
         """
         从静止开始向上运行
 
@@ -156,8 +157,7 @@ class Lift:
         """
         self._start_task(1, farest, LiftState.UP)
 
-    def _begin_to_go_down(self, farest: Job):
-
+    def _begin_to_go_down(self, farest: 'Job'):
         self._start_task(-1, farest, LiftState.DOWN)
 
 

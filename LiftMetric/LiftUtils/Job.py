@@ -3,7 +3,7 @@
 """
 from enum import Enum
 
-from LiftState import LiftState
+from LiftUtils.LiftState import LiftState
 
 
 class Job:

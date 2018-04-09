@@ -1,5 +1,11 @@
 # 电梯调度算法设计
+## 用户接口
+
+1. 添加一个 从beg楼到end楼的人
+2. 在电梯内瞎几把按键
+
 ## 基本算法
+
 ### 电梯的状态
 * 上行
 * 下行
@@ -21,18 +27,19 @@
 
 发送方：服务端
 
-| event         | 数据格式                                                     | 使用时刻                 |
-| ------------- | ------------------------------------------------------------ | ------------------------ |
-| lifts all     | {"1": "{\"lift_number\": 1, \"status\": \"rest\"}", "2": "{\"lift_number\": 2, \"status\": \"rest\"}", "3": "{\"lift_number\": 3, \"status\": \"rest\"}", "4": "{\"lift_number\": 4, \"status\": \"rest\"}", "5": "{\"lift_number\": 5, \"status\": \"rest\"}"} | 广播现有的所有电梯的数据 |
-| lift change   | {\"lift_number\": 1, \"status\": \"rest\"}                   | 单个电梯状态变化         |
-| floor arrived | {"floor": 12, "status": "up"}                                | 到达某个约定的层         |
-| floor lighted | {"floor": 5, "light": "up"}                                  |                          |
+| event          | 数据格式                                                     | 使用时刻                 |
+| -------------- | ------------------------------------------------------------ | ------------------------ |
+| lifts all      | {"1": "{\"lift_number\": 1, \"status\": \"rest\"}", "2": "{\"lift_number\": 2, \"status\": \"rest\"}", "3": "{\"lift_number\": 3, \"status\": \"rest\"}", "4": "{\"lift_number\": 4, \"status\": \"rest\"}", "5": "{\"lift_number\": 5, \"status\": \"rest\"}"} | 广播现有的所有电梯的数据 |
+| lift change    | {\"lift_number\": 1, \"status\": \"rest\"}                   | 单个电梯状态变化         |
+| floor arrived  | {"floor": 12, "status": "up"}                                | 到达某个约定的层         |
+| lift innertask | {"lift_number": 1, "aim floor": }                            |                          |
 
 发送方：客户
 
-| event   | 数据格式             | 使用时刻                   |
-| ------- | -------------------- | -------------------------- |
-| add job | {"from": 1, "to": 2} | 按按钮上行-下行-几楼调度时 |
+| event     | 数据格式                    | 使用时刻                             |
+| --------- | --------------------------- | ------------------------------------ |
+| add job   | {"from": 1, "to": 2}        | 在电梯口按按钮上行-下行调度时        |
+| inner job | {"lift_number": 1, "to": 9} | 在电梯内部按按钮上行-下行-几楼调度时 |
 
 ## 架构
 

@@ -8,11 +8,20 @@ import time
 import random
 from typing import Tuple
 
-from Job import Job
-from Lift import Lift
+from LiftUtils.Job import Job
+from LiftUtils.Lift import Lift
 
 
 class LiftController:
+    def __init__(self, socketio=None):
+
+        self._socket = socketio
+        self._lifts: Tuple[Lift] = tuple(Lift(i, self) for i in range(1, 6))
+        # 剩余工作的队列，对于到来的工作用FIFO
+        self._remained_jobs: Queue = Queue()
+        # 开启任务
+        self._start_deamon()
+
     def _start_deamon(self):
         """
         开启一个处理JOB的守护线程
@@ -26,14 +35,6 @@ class LiftController:
         t = Thread(target=task_start)
         t.daemon = True
         t.start()
-
-    def __init__(self, socketio=None):
-        self._socket = socketio
-        self._lifts: Tuple[Lift] = tuple(Lift(i, self) for i in range(1, 6))
-        # 剩余工作的队列，对于到来的工作用FIFO
-        self._remained_jobs: Queue = Queue()
-        # 开启任务
-        self._start_deamon()
 
     def get_all_status(self):
         """
