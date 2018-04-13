@@ -6,7 +6,7 @@ from queue import Queue
 from threading import Thread
 import time
 import random
-from typing import Tuple
+from typing import Tuple, List
 
 from LiftUtils.Job import Job
 from LiftUtils.Lift import Lift
@@ -14,7 +14,6 @@ from LiftUtils.Lift import Lift
 
 class LiftController:
     def __init__(self, socketio=None):
-
         self._socket = socketio
         self._lifts: Tuple[Lift] = tuple(Lift(i, self) for i in range(1, 6))
         # 剩余工作的队列，对于到来的工作用FIFO
@@ -28,9 +27,9 @@ class LiftController:
         """
         def task_start():
             while True:
-                cur_job = self._remained_jobs.get(block=True)
+                cur_job = self._remained_jobs.get(block=True, timeout=1000)
                 if not self._dispatch_job(cur_job):
-                    # 成功添加
+                    # 没有成功添加
                     self._remained_jobs.put(cur_job)
         t = Thread(target=task_start)
         t.daemon = True
@@ -46,6 +45,7 @@ class LiftController:
         """
         发送消息
         """
+        print(*args, **kwargs)
         return self._socket.emit(*args, **kwargs, namespace='/lifts')
 
     @staticmethod
@@ -66,6 +66,16 @@ class LiftController:
         added = Job(from_floor, to_floor)
         # 生成一个Job 放入阻塞队列
         self._remained_jobs.put(added)
+
+    def add_inner_job(self, lift_number: int, to: int):
+        """
+        :param lift_number: 电梯序号
+        :param to: 要去的楼层
+        :return:
+        """
+        # 映射到对应的电梯上
+        cur_lift: Lift = self._lifts[lift_number - 1]
+        cur_lift.add_inner_job(to)
 
 
 if __name__ == '__main__':

@@ -25,33 +25,46 @@
             });
 
             var change_elevator_with_json = function (msg) {
-                var div_to_modify = $('#' + msg['lift_number']);
-                var inner_searcher = $(div_to_modify);
-                inner_searcher('.status').innerHTML = msg["status"];
-                inner_searcher('.floor').innerHTML = msg["status"]
+                $('#lift' + msg['lift_number']+' .floor').html(msg["floor"]);
             } ;
 
+            socket.on('lift arrived', function (json_var) {
+
+            });
             // 电梯楼层更换
-            socket.on('lift change', function (json_var) {
-                var msg = eval(json_var);
-                change_elevator_with_json(msg);
+            socket.on('lift change', function (msg) {
+                // change_elevator_with_json(msg);
+                msg = JSON.parse(msg);
+                $("#lift" + msg['lift_number'] + " .floor").html(msg["floor"]);
+            });
+
+            // 单个电梯的状态被更改了
+            socket.on('lift status change', function (msg) {
+                $("#lift" + msg["lift_number"] + " .status").html(msg["status"]);
             });
 
             // 电梯状态更换
             socket.on('lifts all', function (json_arr) {
-                var jsArray = eval(json_arr);
+                var jsArray = JSON.parse(json_arr);
                 for (var msg in jsArray) {
                     change_elevator_with_json(msg);
                 }
             });
             // 网页关闭的时候准备做什么
-
-            $(".submit").onclick = function () {
+            $(".submit_control").submit(function () {
+                event.preventDefault();
                 var cur_jq = $(this);
+                var go_from = cur_jq.find('input[name="from"]').val();
+                var go_to = cur_jq.find('input[name="to"]').val();
                 // TODO: fill in this function
-                // var data1 =
 
-            };
+                socket.emit('add job', {
+                    'from': go_from,
+                    'to': go_to
+                })
+            });
+
+            {#$("#lift2 .status").html("up");#}
         });
 
 
@@ -64,7 +77,7 @@
     {% block lift %}
         <div class="lifts">
             {% for lift_id in lift_ids %}
-                <div id="{{lift_id}}">
+                <div id="lift{{lift_id}}">
                     <!--楼层和-->
                     <span class="status">静止</span>
                     <span class="floor">1</span>楼
@@ -76,25 +89,25 @@
     {% block floor_key %}
         <div class="keys">
             <p>控制按钮</p>
+                <form class="submit_control">
+                        <!--显示控制按钮-->
+                    <p class="static_floor_message">楼层控制按钮</p>
+                    to: <input type="text" name="to" />
+                    from: <input type="text" name="from" />
+                    <input type="submit" value="提交" />
+                    <!--显示本层按钮内容-->
+                </form>
             {% for key_id in key_ids %}
 
-            <div id="{{key_id}}">
+            <div id="floor{{key_id}}">
+                <p>
+                    第 {{ key_id }} 楼
                     <!--每层楼对应的固定的信息-->
-
+                    <span class="up">O</span>
+                    <span class="down">O</span>
+                </p>
                     <!--提交移动请求的表单-->
-                    <form class="submit_controll">
-                        <!--显示控制按钮-->
-                        <span class="static_floor_message">第 {{key_id}} 楼</span>
-                        <input type="checkbox" name="up_or_down" value="Up" />上行
-                        <input type="checkbox" name="up_or_down" value="Down" />下行
-                        <input type="submit" value="提交" />
-                        <!--显示本层按钮内容-->
-                        <span class="up">O</span>
-                        <span class="down">O</span>
-                    </form>
                     <!--上行下行的按钮-->
-
-
             </div>
             {% endfor %}
         </div>

@@ -2,6 +2,7 @@ import json
 from threading import Thread, Lock, RLock
 from time import sleep
 from typing import Tuple, List, TYPE_CHECKING
+from functools import wraps
 
 from LiftUtils.LiftState import LiftState
 
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 class Lift:
     FLOOR_STEP_TIME = 1
     _class_lock: Lock = Lock()
-    lift_objects: 'List[Job]' = []
+    lift_objects: 'List[Lift]' = []
 
     def _emit(self, *args, **kwargs)->None:
         """
@@ -35,18 +36,24 @@ class Lift:
                 l._state_lock.acquire()
 
             # 选出同向或者静止的
-            available = [avl for l in Lift.lift_objects and l._state == init_job.direc or l._state == LiftState.REST]
+            available = [l for l in Lift.lift_objects if l._state == init_job.direc or l._state == LiftState.REST]
             if len(available) == 0:
-                # 没有找到对应的对象
+                # 没有找到对应的对象, 则释放所有的锁然后返回FALSE
+                for l in Lift.lift_objects:
+                    l._state_lock.release()
                 return False
             min_lift, min_dist = None, 20
             for c_lift in Lift.lift_objects:
-                if abs(c_lift - init_job.beg) < min_dist and abs(c_lift - init_job.beg) != 0:
+                # 此处已经上锁了, 不用进行额外的同步操作
+
+                if abs(c_lift._floor - init_job.beg) < min_dist \
+                        and abs(c_lift._floor - init_job.beg) != 0:
                     # 最小，但是不存在与统一楼成的时候
-                    min_dist = abs(c_lift - init_job.beg)
+                    min_dist = abs(c_lift._floor - init_job.beg)
                     min_lift = c_lift
             min_lift.add_job(init_job)
 
+            # release all locks
             for l in Lift.lift_objects:
                 l._state_lock.release()
             return True
@@ -61,6 +68,9 @@ class Lift:
             self.lift_objects.append(self)
         # 是一个常量！
         self.LNUM = lnum
+
+        # 内部需要到达的工作
+        self._inner_jobs: List[Lift] = list()
 
         self._state_lock = RLock()
         # 初始化为静止的状态
@@ -107,7 +117,7 @@ class Lift:
 
     def status(self):
         """
-        :return: str of status.
+        :return: json str of status.
         """
         with self._state_lock:
             return json.dumps({
@@ -120,7 +130,23 @@ class Lift:
         """
         :return: 报告电梯的状态变化
         """
-        self._controller.emit('lift change', self.status())
+        self._emit('lift change', self.status())
+
+    def floor_change_method(self, change_func):
+        @wraps(change_func)
+        def _floor_change(*args, **kwargs):
+            ret = change_func(*args, **kwargs)
+
+            return ret
+        return _floor_change
+
+    def status_change_method(self, change_func):
+        @wraps(change_func)
+        def _status_change(*args, **kwargs):
+            ret = change_func(*args, **kwargs)
+            self.report_status_change()
+            return ret
+        return _status_change
 
     def allow_job(self, job: 'Job')->bool:
         raise NotImplemented()
@@ -129,15 +155,27 @@ class Lift:
         if step not in {1, -1}:
             raise ValueError(f"step in Lift._running_task must be -1 or 1, but got {step}")
         # 注意BEG TO
-        while self.get_states()['lift_number'] != self._farest.to:
+        self._controller.emit('lift status change', {
+            'lift_number': self.LNUM,
+            "status": "up" if step == 1 else "down"
+        })
+
+        while self.get_states()['floor'] != self._farest.beg:
+
             # 上楼时间
             sleep(Lift.FLOOR_STEP_TIME)
             with self._state_lock:
                 self._floor += step
+                self.report_status_change()
         # 停止工作，FINALLY
         with self._state_lock:
             self._state = LiftState.REST
             self._farest = None
+        # 传递信息
+        self._emit('lift status change', {
+            'lift_number': self.LNUM,
+            "status": "rest"
+        })
 
     def _start_task(self, step: int, job: 'Job', state: 'LiftState'):
         with self._task_lock:
@@ -159,6 +197,11 @@ class Lift:
 
     def _begin_to_go_down(self, farest: 'Job'):
         self._start_task(-1, farest, LiftState.DOWN)
+
+    def add_inner_job(self, to: int):
+        with self._state_lock:
+            pass
+        raise NotImplemented()
 
 
 if __name__ == '__main__':

@@ -12,14 +12,14 @@ from LiftUtils.LiftController import LiftController
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode="threading")
 # lift controller in programming
 program_lift_controller = LiftController(socketio)
 
 
 @app.route("/")
 def hello():
-    program_lift_controller.emit('lifts all', {'data': 'hello, world'})
+    program_lift_controller.emit('lifts all', program_lift_controller.get_all_status())
     return render_template('base.html',
                            lift_ids=(i for i in range(1, 6)),
                            key_ids=(i for i in range(1, 21)))
@@ -38,10 +38,20 @@ def test_disconnect():
 
 @socketio.on('add job', namespace='/lifts')
 def handle_add_job(json_msg):
-    msg_json = json.loads(json_msg)
-    from_floor = int(msg_json["from"])
-    to_floor = int(msg_json["to"])
+    print("Add Job!")
+    print(json_msg)
+    # msg_json = json.loads(json_msg)
+    from_floor = int(json_msg["from"])
+    to_floor = int(json_msg["to"])
     program_lift_controller.add_job(from_floor, to_floor)
+
+
+@socketio.on('inner job', namespace='/lifts')
+def handle_inner_job(json_msg):
+    program_lift_controller.add_inner_job(
+        lift_number=int(json_msg["lift_number"]),
+        to=int(json_msg["to"])
+    )
 
 
 @socketio.on('my event', namespace='/lifts')

@@ -23,16 +23,33 @@
 
 电梯保有自身的楼层属性和想要去的楼层的信息。这个信息是有序的。
 
+### 电梯的status
+
+```python
+def status(self):
+    """
+    :return: json str of status.
+    """
+	with self._state_lock:
+    return json.dumps({
+        'lift_number': self.LNUM,
+        'status': self._state.value,
+        'floor': self._floor,
+    })
+```
+
+
+
 ### SocketIO 事件
 
 发送方：服务端
 
-| event          | 数据格式                                                     | 使用时刻                 |
-| -------------- | ------------------------------------------------------------ | ------------------------ |
-| lifts all      | {"1": "{\"lift_number\": 1, \"status\": \"rest\"}", "2": "{\"lift_number\": 2, \"status\": \"rest\"}", "3": "{\"lift_number\": 3, \"status\": \"rest\"}", "4": "{\"lift_number\": 4, \"status\": \"rest\"}", "5": "{\"lift_number\": 5, \"status\": \"rest\"}"} | 广播现有的所有电梯的数据 |
-| lift change    | {\"lift_number\": 1, \"status\": \"rest\"}                   | 单个电梯状态变化         |
-| floor arrived  | {"floor": 12, "status": "up"}                                | 到达某个约定的层         |
-| lift innertask | {"lift_number": 1, "aim floor": }                            |                          |
+| event              | 数据格式                                                     | 使用时刻                 |
+| ------------------ | ------------------------------------------------------------ | ------------------------ |
+| lifts all          | {"1": "{\"lift_number\": 1, \"status\": \"rest\"}", "2": "{\"lift_number\": 2, \"status\": \"rest\"}", "3": "{\"lift_number\": 3, \"status\": \"rest\"}", "4": "{\"lift_number\": 4, \"status\": \"rest\"}", "5": "{\"lift_number\": 5, \"status\": \"rest\"}"} | 广播现有的所有电梯的数据 |
+| lift change        | {"floor": 12, "status": "up", "lift_number": 9}              | 单个电梯楼层等状态变化   |
+| lift status change | {\"lift_number\": 1, \"status\": \"rest\"}                   | 到达某个约定的层         |
+| lift innertask     | {"lift_number": 1, "aim floor": }                            |                          |
 
 发送方：客户
 
