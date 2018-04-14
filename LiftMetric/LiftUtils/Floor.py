@@ -1,19 +1,24 @@
 from enum import Enum
 from queue import Queue
 from threading import RLock, Lock
-from typing import List
+from typing import List, TYPE_CHECKING
 from collections import namedtuple
 
 
-from LiftState import LiftState
-from Job import Job
+from .LiftState import LiftState
+from .Job import Job
+
+if TYPE_CHECKING:
+    from .LiftController import LiftController
+    from .Lift import Lift
 
 
 class Floor:
     FloorChoice = namedtuple('FloorChoice', ['list', 'lock'])
 
-    def __init__(self, floor_n: int):
+    def __init__(self, floor_n: int, controler: 'LiftController'):
         self.floor = floor_n
+        self._controler = controler
 
         self._uplist: List[Job] = []
         self.__uplock: Lock = Lock()
@@ -41,11 +46,19 @@ class Floor:
         with self.__downlock:
             self._downlist.append(job)
 
-    def arrive(self, liftstate: LiftState):
+    def _arrive_clear_choice_locked(self, chocie: FloorChoice):
+        pass
+
+    def clear_and_out(self, lift: 'Lift'):
+        # TODO: make clear if locked
+        liftstate = lift.state
         if liftstate == LiftState.UP:
-            raise NotImplemented()
+            mapper = self._mapper["up"]
         elif liftstate == LiftState.DOWN:
-            raise NotImplemented()
+            mapper = self._mapper["down"]
         else:
-            raise ValueError(f"LiftState is {liftstate} but except up or down")
+            mapper = None
+
+
+
 

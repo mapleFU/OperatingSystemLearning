@@ -2,8 +2,9 @@
 分派给LiftController的电梯基本状态
 """
 from enum import Enum
+from threading import Lock
 
-from LiftUtils.LiftState import LiftState
+from .LiftState import LiftState
 
 
 class Job:
@@ -16,6 +17,9 @@ class Job:
         :param to:
         :param direc: 方向
         """
+        self._gced: bool = False
+        self._gclock: Lock = Lock()
+
         self.beg = beg
         self.to = to
         if not direction:
@@ -23,11 +27,28 @@ class Job:
             direction = '⬆️' if beg < to else '⬇️'
         self.dct = direction # 定下自身的方向
 
+    def __lt__(self, other):
+        if isinstance(other, Job):
+            return self.beg < other.beg
+        raise TypeError(f"{other} must be a Job")
+
     def to_floor(self):
         return self.to
 
     def beg_floor(self):
         return self.beg
+
+    def accept(self):
+        with self._gclock:
+            self._gced = True
+
+    @property
+    def accepted(self)->bool:
+        """
+        :return: 返回这个Job 是否被摧毁
+        """
+        with self._gclock:
+            return self._gced
 
     @property
     def direc(self)->LiftState:

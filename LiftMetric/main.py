@@ -59,6 +59,11 @@ def handle_my_custom_event(json):
     print('handle my event')
 
 
+@socketio.on('key clicked', namespace='/lifts')
+def handle_key_clicked(json_v):
+    raise NotImplemented()
+
+
 if __name__ == '__main__':
     socketio.run(debug=True, app=app)
 

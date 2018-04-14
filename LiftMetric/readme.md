@@ -46,10 +46,10 @@ def status(self):
 
 | event              | 数据格式                                                     | 使用时刻                 |
 | ------------------ | ------------------------------------------------------------ | ------------------------ |
-| lifts all          | {"1": "{\"lift_number\": 1, \"status\": \"rest\"}", "2": "{\"lift_number\": 2, \"status\": \"rest\"}", "3": "{\"lift_number\": 3, \"status\": \"rest\"}", "4": "{\"lift_number\": 4, \"status\": \"rest\"}", "5": "{\"lift_number\": 5, \"status\": \"rest\"}"} | 广播现有的所有电梯的数据 |
+| lifts all          | ["1": "{\"lift_number\": 1, \"status\": \"rest\"}", "2": "{\"lift_number\": 2, \"status\": \"rest\"}", "3": "{\"lift_number\": 3, \"status\": \"rest\"}", "4": "{\"lift_number\": 4, \"status\": \"rest\"}", "5": "{\"lift_number\": 5, \"status\": \"rest\"}"] | 广播现有的所有电梯的数据 |
 | lift change        | {"floor": 12, "status": "up", "lift_number": 9}              | 单个电梯楼层等状态变化   |
 | lift status change | {\"lift_number\": 1, \"status\": \"rest\"}                   | 到达某个约定的层         |
-| lift innertask     | {"lift_number": 1, "aim floor": }                            |                          |
+| lift innertask     | {"lift_number": 1, "tasks": [1, 2, 3, 4]}                    | 电梯内部产生任务         |
 
 发送方：客户
 
@@ -57,6 +57,26 @@ def status(self):
 | --------- | --------------------------- | ------------------------------------ |
 | add job   | {"from": 1, "to": 2}        | 在电梯口按按钮上行-下行调度时        |
 | inner job | {"lift_number": 1, "to": 9} | 在电梯内部按按钮上行-下行-几楼调度时 |
+| click key | {"floor": 2, "direc": "up"} | 在电梯按下上行／下行按钮             |
+
+## 算法问题
+
+1. 正向、反向调度
+   产生作业信息中，会在楼层的反向事件中增加任务，如果到这一层但是并不停在这一层，会触发，将这个任务再度加入调度队列。
+2. 楼层按键与外层按键
+   楼层按键必定响应，外层按键同向响应
+3. 楼层选择
+   同层的模型能够被选择，否则无法同向选择
+
+## 主要的模型
+
+### Lift
+
+
+
+### Floor
+
+floor 任务负载，处理外层任务
 
 ## 架构
 

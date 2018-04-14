@@ -3,12 +3,13 @@ from threading import Thread, Lock, RLock
 from time import sleep
 from typing import Tuple, List, TYPE_CHECKING
 from functools import wraps
+import bisect
 
-from LiftUtils.LiftState import LiftState
+from .LiftState import LiftState
 
 if TYPE_CHECKING:
-    from LiftUtils.LiftController import LiftController
-    from LiftUtils.Job import Job
+    from .LiftController import LiftController
+    from .Job import Job
 
 
 class Lift:
@@ -46,12 +47,18 @@ class Lift:
             for c_lift in Lift.lift_objects:
                 # 此处已经上锁了, 不用进行额外的同步操作
 
-                if abs(c_lift._floor - init_job.beg) < min_dist \
-                        and abs(c_lift._floor - init_job.beg) != 0:
+                if abs(c_lift._floor - init_job.beg) < min_dist:
+                    if abs(c_lift._floor - init_job.beg) != 0 and c_lift._state != LiftState.REST:
+                        continue
                     # 最小，但是不存在与统一楼成的时候
                     min_dist = abs(c_lift._floor - init_job.beg)
                     min_lift = c_lift
-            min_lift.add_job(init_job)
+            if min_dist == 0:
+                # TODO: fill in this to complete logic
+                # 在同一个楼层, 显然是...
+                min_lift.add_inner_job(init_job.to, True)
+            else:
+                min_lift.add_job(init_job)
 
             # release all locks
             for l in Lift.lift_objects:
@@ -68,9 +75,10 @@ class Lift:
             self.lift_objects.append(self)
         # 是一个常量！
         self.LNUM = lnum
-
+        # 反向工作，可能被调度的对象反向行走
+        self._reversed_jobs: List[Job] = list()
         # 内部需要到达的工作
-        self._inner_jobs: List[Lift] = list()
+        self._inner_jobs: List[int] = list()
 
         self._state_lock = RLock()
         # 初始化为静止的状态
@@ -81,7 +89,7 @@ class Lift:
         self._floor = 1
 
         # 需要执行的任务
-        self._farest: Job = None
+        self._farest: int = None
         self._task = None
         self._task_lock: RLock = RLock()
 
@@ -99,21 +107,52 @@ class Lift:
     def __str__(self):
         return 'Lift({})'.format(self.LNUM)
 
+    def __job_direc(self, init_job: 'Job')->LiftState:
+        """
+        :param init_job: 初始化整个项目的工作
+        :return: 电梯应该被切入的状态
+        """
+        with self._state_lock:
+            return LiftState.UP if init_job.beg - self._floor > 0 else LiftState.DOWN
+
+    def add_jobs(self, new_jobs: 'List[Job]'):
+        with self._state_lock:
+            for job in new_jobs:
+                self.add_job(job)
+
     def add_job(self, new_job: 'Job'):
         """
         :param new_job: 给电梯添加一个新的 从XX到XX的工作
         :return:
         """
         with self._state_lock:
+
             if self._state == LiftState.REST:
                 # 静止则开始启动
-                if new_job.direc == LiftState.UP:
+                to_direc = self.__job_direc(new_job)
+                if to_direc == LiftState.UP:
                     self._begin_to_go_up(new_job)
                 else:
                     self._begin_to_go_down(new_job)
+                if to_direc != new_job.direc:
+                    bisect.insort(self._reversed_jobs, new_job)
+                    # self._reversed_jobs.append(new_job)
             else:
-                if abs(self._farest.beg - self._floor) < abs(new_job - self._floor):
-                    self._farest = new_job
+                if abs(self._farest - self._floor) < abs(new_job.beg - self._floor):
+                    self._farest = new_job.beg
+
+    def _boot_with_to(self, to: int):
+        """
+        将程序根据TO来更新
+        :param to: 需要前往的楼层
+        :return:
+        """
+        with self._state_lock:
+            if self._state != LiftState.REST:
+                raise ValueError(f"LiftState must be REST, but get {self._state.value}")
+            to_direc = LiftState.UP if to > self._floor else LiftState.DOWN
+            step = to - self._floor / abs(to - self._floor)
+            self._start_task(step, to_direc, to=to)
 
     def status(self):
         """
@@ -151,6 +190,13 @@ class Lift:
     def allow_job(self, job: 'Job')->bool:
         raise NotImplemented()
 
+    def _floor_arrived(self):
+        """
+        guard by _state_lock
+        :return:
+        """
+        pass
+
     def _running_task(self, step: int):
         if step not in {1, -1}:
             raise ValueError(f"step in Lift._running_task must be -1 or 1, but got {step}")
@@ -160,7 +206,7 @@ class Lift:
             "status": "up" if step == 1 else "down"
         })
 
-        while self.get_states()['floor'] != self._farest.beg:
+        while self.get_states()['floor'] != self._farest:
 
             # 上楼时间
             sleep(Lift.FLOOR_STEP_TIME)
@@ -177,13 +223,16 @@ class Lift:
             "status": "rest"
         })
 
-    def _start_task(self, step: int, job: 'Job', state: 'LiftState'):
+    def _start_task(self, step: int, state: 'LiftState', job: 'Job'=None, to: int=None):
         with self._task_lock:
             if self._state != LiftState.REST:
                 raise RuntimeError(f"state in {str(self)} is not {LiftState.REST} when calling go_up")
             else:
                 self._state = state
-                self._farest = job
+                if job is not None:
+                    self._farest = job.beg
+                else:
+                    self._farest = to
                 self._running_task(step)
 
     def _begin_to_go_up(self, farest: 'Job'):
@@ -193,15 +242,49 @@ class Lift:
         :param farest: 初始化的Job
         :return:
         """
-        self._start_task(1, farest, LiftState.UP)
+        self._start_task(1, LiftState.UP, job=farest)
 
     def _begin_to_go_down(self, farest: 'Job'):
-        self._start_task(-1, farest, LiftState.DOWN)
+        self._start_task(-1, LiftState.DOWN, job=farest)
 
-    def add_inner_job(self, to: int):
+    def _report_inner_job_change(self):
+        """
+        报告电梯的内部工作增减
+        :return: None
+        """
         with self._state_lock:
-            pass
-        raise NotImplemented()
+            self._emit("lift innertask", {
+                "lift number": self.LNUM,
+                "tasks": self._inner_jobs
+            })
+
+    def add_inner_job(self, to: int, must_added: bool=False)->bool:
+        """
+        添加电梯内部的指向型工作，通常在 1.接收有目的的客人 2. 内部按键 之后
+        :param to:
+        :param must_added:
+        :return:
+        """
+        with self._state_lock:
+            if to == self._floor:
+                # 成功接收，但什么都没有发生
+                return True
+            direc = LiftState.UP if to > self._floor else LiftState.DOWN
+            need_to_add = True
+            if direc == LiftState.UP and to < self._floor:
+                need_to_add = False
+            elif direc == LiftState.DOWN and to > self._floor:
+                need_to_add = False
+            if self._state == LiftState.REST:
+                # 需要重新被启动
+                self._boot_with_to(to)
+                self._report_inner_job_change()
+            elif need_to_add or must_added:
+                if abs(self._farest - self._floor) < abs(to - self._floor):
+                    self._farest = to
+                # 插入内部工作
+                bisect.insort(self._inner_jobs, to)
+                self._report_inner_job_change()
 
 
 if __name__ == '__main__':

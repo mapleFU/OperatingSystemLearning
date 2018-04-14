@@ -61,13 +61,39 @@
                 socket.emit('add job', {
                     'from': go_from,
                     'to': go_to
-                })
+                });
+                cur_jq.reset();
             });
 
-            {#$("#lift2 .status").html("up");#}
+
+            $("button.up-button").click(function () {
+                event.preventDefault();
+                var cur_jq = $(this);
+                var floor_n = cur_jq.attr("floor");
+                var text = $("#floor" + floor_n + " .up").html();
+                if (text !== "⬆" && floor_n !== "20") {
+                    socket.emit("click key", {
+                        floor: floor_n,
+                        direc: "up"
+                    });
+                }
+
+            });
+
+            $("button.down-button").click(function () {
+                event.preventDefault();
+                var cur_jq = $(this);
+                var floor_n = cur_jq.attr("floor");
+                console.log(floor_n);
+                var text = $("#floor" + floor_n + " .down").html();
+                if (text !== "⬇" && floor_n !== 0) {
+                    socket.emit("click key", {
+                        floor: floor_n,
+                        direc: "down"
+                    });
+                }
+            });
         });
-
-
     </script>
 </head>
 <body>
@@ -103,8 +129,8 @@
                 <p>
                     第 {{ key_id }} 楼
                     <!--每层楼对应的固定的信息-->
-                    <span class="up">O</span>
-                    <span class="down">O</span>
+                    <span class="up">O</span> <button class="up-button" floor="{{ key_id }}">向上</button>
+                    <span class="down">O</span> <button class="down-button" floor="{{ key_id }}">向下</button>
                 </p>
                     <!--提交移动请求的表单-->
                     <!--上行下行的按钮-->
