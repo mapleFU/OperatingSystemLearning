@@ -41,6 +41,7 @@ def handle_add_job(json_msg):
     print("Add Job!")
     print(json_msg)
     # msg_json = json.loads(json_msg)
+    print(json_msg["from"], json_msg["to"])
     from_floor = int(json_msg["from"])
     to_floor = int(json_msg["to"])
     program_lift_controller.add_job(from_floor, to_floor)
@@ -59,9 +60,9 @@ def handle_my_custom_event(json):
     print('handle my event')
 
 
-@socketio.on('key clicked', namespace='/lifts')
+@socketio.on('outer job', namespace='/lifts')
 def handle_key_clicked(json_v):
-    pass
+    raise NotImplemented()
 
 
 if __name__ == '__main__':

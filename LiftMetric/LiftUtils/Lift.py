@@ -1,7 +1,7 @@
 import json
 from threading import Thread, Lock, RLock
 from time import sleep
-from typing import Tuple, List, TYPE_CHECKING, Dict
+from typing import Tuple, List, TYPE_CHECKING, Dict, Set
 from functools import wraps
 import bisect
 
@@ -37,7 +37,7 @@ class Lift:
                 l._state_lock.acquire()
 
             # 选出同向或者静止的
-            available = [l for l in Lift.lift_objects if l._state == init_job.direc or l._state == LiftState.REST]
+            available = [l for l in Lift.lift_objects if l._state == LiftState.makestate(l._floor, init_job.beg) or l._state == LiftState.REST]
             if len(available) == 0:
                 # 没有找到对应的对象, 则释放所有的锁然后返回FALSE
                 for l in Lift.lift_objects:
@@ -54,8 +54,14 @@ class Lift:
                     # 最小，但是不存在与统一楼成的时候
                     min_dist = abs(c_lift._floor - init_job.beg)
                     min_lift = c_lift
-            if min_dist == 0:
-                # 在同一个楼层, 显然是...
+            if min_dist == 20:
+                # 没有找到符合要求的目标
+                for l in Lift.lift_objects:
+                    l._state_lock.release()
+                return False
+            elif min_dist == 0 and init_job.to is not None:
+                # 在同一个楼层, 显然可以直接接走
+                # 不过需要另一个存在
                 min_lift.add_inner_job(init_job.to, True)
             else:
                 min_lift.add_job(init_job)
@@ -89,7 +95,7 @@ class Lift:
         # 反向工作，可能被调度的对象反向行走. 形式为楼层->列表的映射
         self._reversed_jobs: Dict[int, List[Job]] = {i: list() for i in range(1, 21)}
         # 内部需要到达的工作
-        self._inner_jobs: List[int] = list()
+        self._inner_jobs: Set[int] = set()
 
         self._state_lock = RLock()
         # 初始化为静止的状态
@@ -126,20 +132,21 @@ class Lift:
         with self._state_lock:
             return LiftState.UP if init_job.beg - self._floor > 0 else LiftState.DOWN
 
-    def add_jobs_under_lock(self, new_jobs: 'List[Job]'):
+    def add_inner_jobs_under_lock(self, new_jobs: 'List[Job]'):
         """
         在目前已有的代码之下
         :param new_jobs:
         :return:
         """
         for job in new_jobs:
-            self.add_job(job)
+            self.add_inner_job(job.to)
 
     def add_job(self, new_job: 'Job'):
         """
         :param new_job: 给电梯添加一个新的 从XX到XX的工作
         :return:
         """
+        print(f"!!!!add job: {new_job}!!!!!")
         with self._state_lock:
 
             if self._state == LiftState.REST:
@@ -230,6 +237,9 @@ class Lift:
             sleep(Lift.FLOOR_STEP_TIME)
             with self._state_lock:
                 self._floor += step
+                if self._floor in self._inner_jobs:
+                    self._inner_jobs.remove(self._floor)
+                    self._report_inner_job_change()
                 if self._floor != self._farest:
                     self._check_reversed_jobs_under_locks()
                 self._floor_arrived_under_lock()
@@ -237,6 +247,11 @@ class Lift:
         # 停止工作，FINALLY
         with self._state_lock:
             self._state = LiftState.REST
+
+            if len(self._inner_jobs) != 0:
+                self._inner_jobs.clear() # 对INNERJOBS 操作引发
+                self._report_inner_job_change()
+
             self._farest = None
             # 传递信息
             self._emit('lift status change', {
@@ -283,7 +298,7 @@ class Lift:
         with self._state_lock:
             self._emit("lift innertask", {
                 "lift number": self.LNUM,
-                "tasks": self._inner_jobs
+                "tasks": list(self._inner_jobs)
             })
 
     def add_inner_job(self, to: int, must_added: bool=False)->bool:
@@ -311,8 +326,7 @@ class Lift:
                 if abs(self._farest - self._floor) < abs(to - self._floor):
                     self._farest = to
                 # 插入内部工作
-
-                bisect.insort(self._inner_jobs, to)
+                self._inner_jobs.add(to)
                 self._report_inner_job_change()
 
 

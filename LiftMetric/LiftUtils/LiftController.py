@@ -14,6 +14,7 @@ from .Floor import Floor
 
 if TYPE_CHECKING:
     from threading import RLock
+    from .LiftState import LiftState
 
 
 class LiftController:
@@ -74,6 +75,18 @@ class LiftController:
         floor_i: Floor = self._floors[from_floor - 1]
         floor_i.add_task(added)
 
+    def add_outer_job(self, from_floor: int, drc: 'LiftState'):
+        """
+        相当于人在from_floor 按电梯
+        这个实际上也是有方向的
+        :param from_floor:
+        :param drc: outer job 对应的反向
+        """
+        added = Job(from_floor, direction=drc)
+        self._remained_jobs.put(added)
+        floor_i: Floor = self._floors[from_floor - 1]
+        floor_i.add_task(added)
+
     def arrived(self, lift: Lift, floor_n: int):
         # TODO 研究是否能够修改这一套逻辑
         """
@@ -86,7 +99,7 @@ class LiftController:
         # 获得对应的 FLOOR
         floor: Floor = self._floors[floor_n - 1]
         task_l: List[Job] = floor.clear_and_out(lift.state)
-        lift.add_jobs_under_lock(task_l)
+        lift.add_inner_jobs_under_lock(task_l)
 
     def add_inner_job(self, lift_number: int, to: int):
         """
@@ -95,6 +108,7 @@ class LiftController:
         :return:
         """
         # 映射到对应的电梯上
+        print(f"add inner job: to {to}")
         cur_lift: Lift = self._lifts[lift_number - 1]
         cur_lift.add_inner_job(to)
 

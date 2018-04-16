@@ -11,8 +11,12 @@ class Job:
     """
     任务，表示电梯上升或者下降
     """
-    def __init__(self, beg: int, to: int, direction: str=None):
+    def __str__(self):
+        return f'Job(beg:{self.beg}, to:{self.to}, direc:{self.direc})'
+
+    def __init__(self, beg: int, to: int=None, direction: LiftState=None):
         """
+        direction 和 to必定有一个
         :param beg:
         :param to:
         :param direc: 方向
@@ -25,6 +29,8 @@ class Job:
         if not direction:
             # if direc is None
             direction = '⬆️' if beg < to else '⬇️'
+        elif isinstance(direction, LiftState):
+            direction = '⬆️' if direction == LiftState.UP else '⬇️'
         self.dct = direction # 定下自身的方向
 
     def __lt__(self, other):

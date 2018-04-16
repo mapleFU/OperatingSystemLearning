@@ -11,7 +11,7 @@
             var namespace = "/lifts";
             var server_url = 'http://' + document.domain + ':' + location.port + namespace;
             var socket = io.connect(server_url);
-            
+
             socket.on('connect', function(msg) {
                 socket.emit('my event', {data: 'I\'m connected!'});
             });
@@ -42,24 +42,55 @@
                     change_elevator_with_json(msg);
                 }
             });
+
+            socket.on('floor button', function (json_var) {
+                 var state_to_change = $("#floor"+json_var["floor"]+" ."+json_var["key"]);
+
+                 if (json_var["light"] === true) {
+                     if (json_var["key"] === "up") {
+                         console.log("change to up");
+                         state_to_change.html("⬆");
+                     } else {
+                         console.log("change to down");
+                         state_to_change.html("⬇");
+                     }
+                 } else {
+                    console.log("change to zero");
+                    state_to_change.html("O");
+                 }
+            });
+
+            socket.on('lift innertask', function (json_var) {
+                var floor = json_var["lift number"];
+                console.log(json_var["tasks"]);
+                console.log("#lift"+floor+" .inner-job");
+                console.log($("#lift"+floor+" .inner-job").html());
+                $("#lift"+floor+" .inner-job").html(json_var["tasks"]);
+            });
+
             // 网页关闭的时候准备做什么
             $(".submit_control").submit(function () {
+
                 event.preventDefault();
                 var cur_jq = $(this);
-                var go_from = cur_jq.find('input[name="from"]').val();
-                var go_to = cur_jq.find('input[name="to"]').val();
+                var from_input = cur_jq.find('input[name="from"]');
+                var go_from = from_input.val();
+                from_input.val('');
+                var go_input = cur_jq.find('input[name="to"]');
+                var go_to = go_input.val();
+                go_input.val('');
                 // TODO: fill in this function
 
                 socket.emit('add job', {
                     'from': go_from,
                     'to': go_to
                 });
-                cur_jq.reset();
             });
 
 
             $("button.up-button").click(function () {
                 event.preventDefault();
+
                 var cur_jq = $(this);
                 var floor_n = cur_jq.attr("floor");
                 var text = $("#floor" + floor_n + " .up").html();
@@ -85,6 +116,23 @@
                     });
                 }
             });
+
+            $("button.inner-job").click(function () {
+                event.preventDefault();
+
+                var button_id = $(this).attr("id");
+                var div_id = button_id.replace("inner_click", "");
+                var inputs = $("#lift"+div_id).find('input[name="想按几楼嘞"]');
+                var val = inputs.val();
+                console.log(val);
+                socket.emit("inner job", {
+                    "lift_number": div_id,
+                    "to": val
+                });
+                inputs.val('');
+                // TODO: reset button
+
+            });
         });
     </script>
 </head>
@@ -99,7 +147,10 @@
                     <!--楼层和-->
                     <span class="status">rest</span>
                     <span class="floor">1</span>楼
-                    <input type="number" name="">
+                    <input type="number" name="想按几楼嘞" min="1" max="20" />
+                    <button id="inner_click{{ lift_id }}" class="inner-job">添加前往该楼</button>
+                    <!--空白，用于添加内部任务-->
+                    <span class="inner-job"></span>
                 </div>
             {% endfor %}
         </div>
@@ -111,8 +162,8 @@
                 <form class="submit_control">
                         <!--显示控制按钮-->
                     <p class="static_floor_message">楼层控制按钮</p>
-                    to: <input type="text" name="to" />
-                    from: <input type="text" name="from" />
+                    to: <input type="number" min="1" max="20" name="to" />
+                    from: <input type="number" min="1" max="20" name="from" />
                     <input type="submit" value="提交" />
                     <!--显示本层按钮内容-->
                 </form>
