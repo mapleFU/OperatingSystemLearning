@@ -1,7 +1,7 @@
 import json
 from threading import Thread, Lock, RLock
 from time import sleep
-from typing import Tuple, List, TYPE_CHECKING
+from typing import Tuple, List, TYPE_CHECKING, Dict
 from functools import wraps
 import bisect
 
@@ -44,6 +44,7 @@ class Lift:
                     l._state_lock.release()
                 return False
             min_lift, min_dist = None, 20
+            # 选出对应的电梯
             for c_lift in Lift.lift_objects:
                 # 此处已经上锁了, 不用进行额外的同步操作
 
@@ -54,7 +55,6 @@ class Lift:
                     min_dist = abs(c_lift._floor - init_job.beg)
                     min_lift = c_lift
             if min_dist == 0:
-                # TODO: fill in this to complete logic
                 # 在同一个楼层, 显然是...
                 min_lift.add_inner_job(init_job.to, True)
             else:
@@ -70,13 +70,24 @@ class Lift:
         with self._state_lock:
             return self._state
 
+    def _check_reversed_jobs_under_locks(self):
+        """
+        检查
+        :return:
+        """
+
+        floor_r_tasks: List[Job] = self._reversed_jobs[self._floor]
+        for floor_n in floor_r_tasks:
+            self._controller.add_job(from_floor=floor_n.beg, to_floor=floor_n.to)
+        floor_r_tasks.clear()
+
     def __init__(self, lnum: int, controller: 'LiftController'=None):
         with self._class_lock:
             self.lift_objects.append(self)
         # 是一个常量！
         self.LNUM = lnum
-        # 反向工作，可能被调度的对象反向行走
-        self._reversed_jobs: List[Job] = list()
+        # 反向工作，可能被调度的对象反向行走. 形式为楼层->列表的映射
+        self._reversed_jobs: Dict[int, List[Job]] = {i: list() for i in range(1, 21)}
         # 内部需要到达的工作
         self._inner_jobs: List[int] = list()
 
@@ -115,10 +126,14 @@ class Lift:
         with self._state_lock:
             return LiftState.UP if init_job.beg - self._floor > 0 else LiftState.DOWN
 
-    def add_jobs(self, new_jobs: 'List[Job]'):
-        with self._state_lock:
-            for job in new_jobs:
-                self.add_job(job)
+    def add_jobs_under_lock(self, new_jobs: 'List[Job]'):
+        """
+        在目前已有的代码之下
+        :param new_jobs:
+        :return:
+        """
+        for job in new_jobs:
+            self.add_job(job)
 
     def add_job(self, new_job: 'Job'):
         """
@@ -135,8 +150,10 @@ class Lift:
                 else:
                     self._begin_to_go_down(new_job)
                 if to_direc != new_job.direc:
-                    bisect.insort(self._reversed_jobs, new_job)
-                    # self._reversed_jobs.append(new_job)
+                    # self._reversed_jobs
+                    print(f'task: {new_job.beg} -> {new_job.to}')
+                    self._reversed_jobs[new_job.beg].append(new_job)
+
             else:
                 if abs(self._farest - self._floor) < abs(new_job.beg - self._floor):
                     self._farest = new_job.beg
@@ -151,7 +168,7 @@ class Lift:
             if self._state != LiftState.REST:
                 raise ValueError(f"LiftState must be REST, but get {self._state.value}")
             to_direc = LiftState.UP if to > self._floor else LiftState.DOWN
-            step = to - self._floor / abs(to - self._floor)
+            step = int((to - self._floor) / abs(to - self._floor))
             self._start_task(step, to_direc, to=to)
 
     def status(self):
@@ -190,14 +207,15 @@ class Lift:
     def allow_job(self, job: 'Job')->bool:
         raise NotImplemented()
 
-    def _floor_arrived(self):
+    def _floor_arrived_under_lock(self):
         """
         guard by _state_lock
         :return:
         """
-        pass
+        self._controller.arrived(lift=self, floor_n=self._floor)
 
     def _running_task(self, step: int):
+        # TODO: fill the task with stop and aim
         if step not in {1, -1}:
             raise ValueError(f"step in Lift._running_task must be -1 or 1, but got {step}")
         # 注意BEG TO
@@ -212,16 +230,25 @@ class Lift:
             sleep(Lift.FLOOR_STEP_TIME)
             with self._state_lock:
                 self._floor += step
+                if self._floor != self._farest:
+                    self._check_reversed_jobs_under_locks()
+                self._floor_arrived_under_lock()
                 self.report_status_change()
         # 停止工作，FINALLY
         with self._state_lock:
             self._state = LiftState.REST
             self._farest = None
-        # 传递信息
-        self._emit('lift status change', {
-            'lift_number': self.LNUM,
-            "status": "rest"
-        })
+            # 传递信息
+            self._emit('lift status change', {
+                'lift_number': self.LNUM,
+                "status": "rest"
+            })
+            end_floor_list = self._reversed_jobs[self._floor]
+            # DEBUG
+            print(end_floor_list)
+            for job in end_floor_list:
+                self.add_inner_job(to=job.to)
+            end_floor_list.clear()
 
     def _start_task(self, step: int, state: 'LiftState', job: 'Job'=None, to: int=None):
         with self._task_lock:
@@ -233,7 +260,8 @@ class Lift:
                     self._farest = job.beg
                 else:
                     self._farest = to
-                self._running_task(step)
+                task_thread = Thread(target=self._running_task, args=(step,))
+                task_thread.start()
 
     def _begin_to_go_up(self, farest: 'Job'):
         """
@@ -283,6 +311,7 @@ class Lift:
                 if abs(self._farest - self._floor) < abs(to - self._floor):
                     self._farest = to
                 # 插入内部工作
+
                 bisect.insort(self._inner_jobs, to)
                 self._report_inner_job_change()
 

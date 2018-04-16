@@ -6,11 +6,14 @@ from queue import Queue
 from threading import Thread
 import time
 import random
-from typing import Tuple, List
+from typing import Tuple, List, TYPE_CHECKING
 
 from .Job import Job
 from .Lift import Lift
 from .Floor import Floor
+
+if TYPE_CHECKING:
+    from threading import RLock
 
 
 class LiftController:
@@ -72,14 +75,18 @@ class LiftController:
         floor_i.add_task(added)
 
     def arrived(self, lift: Lift, floor_n: int):
+        # TODO 研究是否能够修改这一套逻辑
         """
+        已经在锁的保护下了
         电梯到达楼层，LIFT为指定楼层，floor_n 为楼层序号
         :param lift:
         :param floor_n:
         :return:
         """
-        floor: Floor = self._floors[floor_n - 1] # 获得对应的 FLOOR
-        floor.arrive(lift)
+        # 获得对应的 FLOOR
+        floor: Floor = self._floors[floor_n - 1]
+        task_l: List[Job] = floor.clear_and_out(lift.state)
+        lift.add_jobs_under_lock(task_l)
 
     def add_inner_job(self, lift_number: int, to: int):
         """

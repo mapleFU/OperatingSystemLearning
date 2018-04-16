@@ -11,17 +11,9 @@
             var namespace = "/lifts";
             var server_url = 'http://' + document.domain + ':' + location.port + namespace;
             var socket = io.connect(server_url);
-
-            $('#test').html('<p>' + server_url + '</p>');
-            // console.log(server_url);
+            
             socket.on('connect', function(msg) {
                 socket.emit('my event', {data: 'I\'m connected!'});
-            });
-
-
-            socket.on('message', function(msg){
-                console.log(msg.time);
-                $('#test').html('<p>' + msg.time + '</p>');
             });
 
             var change_elevator_with_json = function (msg) {
@@ -97,7 +89,7 @@
     </script>
 </head>
 <body>
-    <h3>Demo-Flask-SocketIO</h3>
+    <h3>欢迎来到风之电梯调度系统</h3>
     <p id='test'> Hello </p>
 
     {% block lift %}
@@ -105,8 +97,9 @@
             {% for lift_id in lift_ids %}
                 <div id="lift{{lift_id}}">
                     <!--楼层和-->
-                    <span class="status">静止</span>
+                    <span class="status">rest</span>
                     <span class="floor">1</span>楼
+                    <input type="number" name="">
                 </div>
             {% endfor %}
         </div>

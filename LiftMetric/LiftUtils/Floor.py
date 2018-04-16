@@ -16,6 +16,14 @@ if TYPE_CHECKING:
 class Floor:
     FloorChoice = namedtuple('FloorChoice', ['list', 'lock'])
 
+    def _emit(self, *args, **kwargs)->None:
+        """
+        广播消息
+        :param args:
+        :param kwargs:
+        """
+        self._controller.emit(*args, **kwargs)
+
     def __init__(self, floor_n: int, controler: 'LiftController'):
         self.floor = floor_n
         self._controler = controler
@@ -32,6 +40,16 @@ class Floor:
             "down": Floor.FloorChoice(self._downlist, self.__downlock)
         }
 
+    @property
+    def _up_task_num(self)->int:
+        with self.__uplock:
+            return len(self._uplist)
+
+    @property
+    def _down_task_num(self)->int:
+        with self.__downlock:
+            return len(self._downlist)
+
     def add_task(self, job: Job):
         if job.direc == '⬆️':
             self._add_up(job)
@@ -46,18 +64,26 @@ class Floor:
         with self.__downlock:
             self._downlist.append(job)
 
-    def _arrive_clear_choice_locked(self, chocie: FloorChoice):
-        pass
-
-    def clear_and_out(self, lift: 'Lift'):
+    def clear_and_out(self, liftstate: 'LiftState')->List[Job]:
         # TODO: make clear if locked
-        liftstate = lift.state
+        """
+        :param liftstate: 需要处理的电梯的状态
+        :return: JOB的列表
+        """
         if liftstate == LiftState.UP:
             mapper = self._mapper["up"]
         elif liftstate == LiftState.DOWN:
             mapper = self._mapper["down"]
         else:
-            mapper = None
+            if self._up_task_num == 0:
+                mapper = self._mapper["down"]
+            else:
+                mapper = self._mapper["up"]
+        with mapper.lock:
+            m_list = mapper.list
+            mapper.list.clear()
+            # mapper.list = list()
+            return m_list
 
 
 

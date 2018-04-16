@@ -50,14 +50,17 @@ def status(self):
 | lift change        | {"floor": 12, "status": "up", "lift_number": 9}              | 单个电梯楼层等状态变化   |
 | lift status change | {\"lift_number\": 1, \"status\": \"rest\"}                   | 到达某个约定的层         |
 | lift innertask     | {"lift_number": 1, "tasks": [1, 2, 3, 4]}                    | 电梯内部产生任务         |
+| floor butoon       | {"floor": 12, "key": "up", "light": true}                    | 楼层的一个按键亮或者暗   |
 
 发送方：客户
 
-| event     | 数据格式                    | 使用时刻                             |
-| --------- | --------------------------- | ------------------------------------ |
-| add job   | {"from": 1, "to": 2}        | 在电梯口按按钮上行-下行调度时        |
-| inner job | {"lift_number": 1, "to": 9} | 在电梯内部按按钮上行-下行-几楼调度时 |
-| click key | {"floor": 2, "direc": "up"} | 在电梯按下上行／下行按钮             |
+| event     | 数据格式                    | 使用时刻     | 响应                         |
+| --------- | --------------------------- | ------------------------------------ |------------------------------------ |
+| add job   | {"from": 1, "to": 2}        | 在电梯口按按钮上行-下行调度时        |add_job|
+| inner job | {"lift_number": 1, "to": 9} | 在电梯内部按按钮上行-下行-几楼调度时 |add_inner_job|
+| click key | {"floor": 2, "direc": "up"} | 在电梯按下上行／下行按钮             |add_inner_job|
+
+
 
 ## 算法问题
 
