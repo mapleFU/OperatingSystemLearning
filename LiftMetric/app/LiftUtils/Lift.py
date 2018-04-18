@@ -63,6 +63,7 @@ class Lift:
                 # 在同一个楼层, 显然可以直接接走
                 # 不过需要另一个存在
                 min_lift.add_inner_job(init_job.to, True)
+                min_lift._floor_arrived_under_lock()
             else:
                 min_lift.add_job(init_job)
 
@@ -262,18 +263,11 @@ class Lift:
                 "status": "rest"
             })
             end_floor_list = self._reversed_jobs[self._floor]
-            # TODO:DEBUG and clear reversed jobs
-
             for job in end_floor_list:
                 if job.to is not None:
                     self.add_inner_job(to=job.to)
-                else:
-                    self.clear_to_none_reversed_job(job)
             self._floor_arrived_under_lock()
             end_floor_list.clear()
-
-    def clear_to_none_reversed_job(self, job: 'Job'):
-        pass
 
     def _start_task(self, step: int, state: 'LiftState', job: 'Job'=None, to: int=None):
         with self._task_lock:

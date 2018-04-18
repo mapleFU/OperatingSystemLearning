@@ -66,6 +66,6 @@ def handle_key_clicked(json_v):
 
 
 if __name__ == '__main__':
-    socketio.run(debug=True, app=app)
+    socketio.run(debug=True, app=app, host='0.0.0.0', port=5000)
 
 
