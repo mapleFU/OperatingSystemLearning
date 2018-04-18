@@ -90,30 +90,35 @@
 
             $("button.up-button").click(function () {
                 event.preventDefault();
-
+                // console.log("按了上了，狗屎");
                 var cur_jq = $(this);
                 var floor_n = cur_jq.attr("floor");
                 var text = $("#floor" + floor_n + " .up").html();
                 if (text !== "⬆" && floor_n !== "20") {
-                    socket.emit("click key", {
+                    var send_dict =  {
                         floor: floor_n,
                         direc: "up"
-                    });
+                    };
+                    socket.emit("outer job", send_dict);
+                    console.log(send_dict);
                 }
 
             });
 
             $("button.down-button").click(function () {
                 event.preventDefault();
+                // console.log("按了下了，狗屎");
                 var cur_jq = $(this);
                 var floor_n = cur_jq.attr("floor");
                 console.log(floor_n);
                 var text = $("#floor" + floor_n + " .down").html();
                 if (text !== "⬇" && floor_n !== 0) {
-                    socket.emit("click key", {
+                    var send_dict = {
                         floor: floor_n,
                         direc: "down"
-                    });
+                    };
+                    socket.emit("outer job", send_dict);
+                    console.log(send_dict);
                 }
             });
 

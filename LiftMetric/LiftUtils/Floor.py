@@ -64,6 +64,7 @@ class Floor:
             # 发送状态信息
             if len(self._uplist) == 1:
                 need_emit = True
+                print(f'uplist in {self.floor} -> {self._uplist}')
         if need_emit:
             self._emit("floor button", {
                 "floor": self.floor,
@@ -77,6 +78,7 @@ class Floor:
             self._downlist.append(job)
             if len(self._downlist) == 1:
                 need_emit = True
+                print(f'downlist in {self.floor} -> {self._downlist}')
         if need_emit:
             self._emit("floor button", {
                 "floor": self.floor,
@@ -110,7 +112,6 @@ class Floor:
         with cur_lock:
             # it should be a copy!!!!!!!!!!!!!!!
             m_list = copy(cur_list)
-            # print(f'mapper_list: {mapper.list}, mapper: {mapper}')
             cur_list.clear()
             length = len(m_list)
             if length != 0:
@@ -119,7 +120,7 @@ class Floor:
                     "key": up_or_down,
                     "light": False
                 })
-            print(f'original m_list is {m_list}')
+            # print(f'original m_list is {m_list}')
             for jobs in m_list:
                 print(jobs)
             m_list = [job for job in m_list if job.to is not None]

@@ -14,6 +14,9 @@ class Job:
     def __str__(self):
         return f'Job(beg:{self.beg}, to:{self.to}, direc:{self.direc})'
 
+    def __repr__(self):
+        return str(self)
+
     def __init__(self, beg: int, to: int=None, direction: LiftState=None):
         """
         direction 和 to必定有一个
@@ -61,7 +64,7 @@ class Job:
         """
         :return: direction of a job
         """
-        return LiftState.UP if self.dct == '⬆️' else LiftState.DOWN
+        return LiftState.UP if self.dct == '⬆️' or self.dct == "up" else LiftState.DOWN
 
 
 if __name__ == '__main__':

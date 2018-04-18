@@ -62,7 +62,7 @@ def handle_my_custom_event(json):
 
 @socketio.on('outer job', namespace='/lifts')
 def handle_key_clicked(json_v):
-    raise NotImplemented()
+    program_lift_controller.add_outer_job(from_floor=int(json_v["floor"]), drc=json_v["direc"])
 
 
 if __name__ == '__main__':

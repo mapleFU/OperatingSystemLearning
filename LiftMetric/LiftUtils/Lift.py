@@ -84,7 +84,10 @@ class Lift:
 
         floor_r_tasks: List[Job] = self._reversed_jobs[self._floor]
         for floor_n in floor_r_tasks:
-            self._controller.add_job(from_floor=floor_n.beg, to_floor=floor_n.to)
+            if floor_n.to is not None:
+                self._controller.add_job(from_floor=floor_n.beg, to_floor=floor_n.to)
+            else:
+                self._controller.add_outer_job(from_floor=floor_n.beg, drc=floor_n.dct)
         floor_r_tasks.clear()
 
     def __init__(self, lnum: int, controller: 'LiftController'=None):
@@ -259,11 +262,18 @@ class Lift:
                 "status": "rest"
             })
             end_floor_list = self._reversed_jobs[self._floor]
-            # DEBUG
-            print(end_floor_list)
+            # TODO:DEBUG and clear reversed jobs
+
             for job in end_floor_list:
-                self.add_inner_job(to=job.to)
+                if job.to is not None:
+                    self.add_inner_job(to=job.to)
+                else:
+                    self.clear_to_none_reversed_job(job)
+            self._floor_arrived_under_lock()
             end_floor_list.clear()
+
+    def clear_to_none_reversed_job(self, job: 'Job'):
+        pass
 
     def _start_task(self, step: int, state: 'LiftState', job: 'Job'=None, to: int=None):
         with self._task_lock:
