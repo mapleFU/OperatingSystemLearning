@@ -11,13 +11,16 @@
             var namespace = "/lifts";
             var server_url = 'http://' + document.domain + ':' + location.port + namespace;
             var socket = io.connect(server_url);
+            //const socket = io(server_url, {
+            //  transports: ['websocket']
+            //});
 
-            socket.on('connect', function(msg) {
-                socket.emit('my event', {data: 'I\'m connected!'});
-            });
+            socket.emit('connect');
 
             var change_elevator_with_json = function (msg) {
-                $('#lift' + msg['lift_number']+' .floor').html(msg["floor"]);
+                console.log("msg->" + msg);
+                msg = JSON.parse(msg);
+                $("#lift" + msg['lift_number'] + " .floor").html(msg["floor"]);
             } ;
 
             socket.on('lift arrived', function (json_var) {
@@ -38,8 +41,9 @@
             // 电梯状态更换
             socket.on('lifts all', function (json_arr) {
                 var jsArray = JSON.parse(json_arr);
+                // 主意这个！
                 for (var msg in jsArray) {
-                    change_elevator_with_json(msg);
+                    change_elevator_with_json(jsArray[msg]);
                 }
             });
 
@@ -62,9 +66,6 @@
 
             socket.on('lift innertask', function (json_var) {
                 var floor = json_var["lift number"];
-                console.log(json_var["tasks"]);
-                console.log("#lift"+floor+" .inner-job");
-                console.log($("#lift"+floor+" .inner-job").html());
                 $("#lift"+floor+" .inner-job").html(json_var["tasks"]);
             });
 
@@ -94,7 +95,8 @@
                 var cur_jq = $(this);
                 var floor_n = cur_jq.attr("floor");
                 var text = $("#floor" + floor_n + " .up").html();
-                if (text !== "⬆" && floor_n !== "20") {
+                var i_value = parseInt(floor_n);
+                if (text !== "⬆" && i_value < 20 && i_value >= 1) {
                     var send_dict =  {
                         floor: floor_n,
                         direc: "up"
@@ -112,7 +114,8 @@
                 var floor_n = cur_jq.attr("floor");
                 console.log(floor_n);
                 var text = $("#floor" + floor_n + " .down").html();
-                if (text !== "⬇" && floor_n !== 0) {
+                var i_value = parseInt(floor_n);
+                if (text !== "⬇" && i_value > 0 && i_value <= 20) {
                     var send_dict = {
                         floor: floor_n,
                         direc: "down"
@@ -129,11 +132,14 @@
                 var div_id = button_id.replace("inner_click", "");
                 var inputs = $("#lift"+div_id).find('input[name="想按几楼嘞"]');
                 var val = inputs.val();
-                console.log(val);
-                socket.emit("inner job", {
-                    "lift_number": div_id,
-                    "to": val
-                });
+                var i_val = parseInt(val);
+                if (i_val <= 20 && i_val >= 0) {
+                    socket.emit("inner job", {
+                        "lift_number": div_id,
+                        "to": val
+                    });
+                }
+
                 inputs.val('');
                 // TODO: reset button
 

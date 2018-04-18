@@ -17,6 +17,19 @@ socketio = SocketIO(app, async_mode="threading")
 program_lift_controller = LiftController(socketio)
 
 
+def floor_valid(floor_n: int)->bool:
+    """
+
+    :param floor_n: 楼梯的序号
+    :return: 是否合法
+    """
+    if isinstance(floor_n, str):
+        floor_n = int(floor_n)
+    elif not isinstance(floor_n, int):
+        raise RuntimeError(f"{floor_n} is not str or int")
+    return 0 < floor_n <= 20
+
+
 @app.route("/")
 def hello():
     program_lift_controller.emit('lifts all', program_lift_controller.get_all_status())
@@ -28,7 +41,7 @@ def hello():
 @socketio.on('connect', namespace='/lifts')
 def test_connect():
     # 这里SOCKETIO ON是没有MESSAGE的？
-    emit('lift status', program_lift_controller.get_all_status())
+    emit('lifts all', program_lift_controller.get_all_status())
 
 
 @socketio.on('disconnect', namespace='/lifts')
@@ -38,17 +51,19 @@ def test_disconnect():
 
 @socketio.on('add job', namespace='/lifts')
 def handle_add_job(json_msg):
-    print("Add Job!")
-    print(json_msg)
     # msg_json = json.loads(json_msg)
     print(json_msg["from"], json_msg["to"])
     from_floor = int(json_msg["from"])
     to_floor = int(json_msg["to"])
+    if not floor_valid(from_floor) or not floor_valid(to_floor):
+        return
     program_lift_controller.add_job(from_floor, to_floor)
 
 
 @socketio.on('inner job', namespace='/lifts')
 def handle_inner_job(json_msg):
+    if not floor_valid(json_msg["to"]):
+        return
     program_lift_controller.add_inner_job(
         lift_number=int(json_msg["lift_number"]),
         to=int(json_msg["to"])
@@ -62,10 +77,12 @@ def handle_my_custom_event(json):
 
 @socketio.on('outer job', namespace='/lifts')
 def handle_key_clicked(json_v):
+    if not floor_valid(json_v["floor"]):
+        return
     program_lift_controller.add_outer_job(from_floor=int(json_v["floor"]), drc=json_v["direc"])
 
 
 if __name__ == '__main__':
-    socketio.run(debug=True, app=app, host='0.0.0.0', port=5000)
+    socketio.run(debug=True, app=app, host='127.0.0.1', port=5000)
 
 
