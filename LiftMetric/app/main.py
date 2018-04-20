@@ -2,17 +2,22 @@
 # API 需要按照这个奇葩的标准写
 import time
 import json
+from threading import Thread, Lock, RLock
 
 from flask import Flask, render_template
 from flask_bootstrap import Bootstrap
-from flask_socketio import SocketIO, emit, send
+from flask_socketio import SocketIO
+import eventlet
 
 from LiftUtils.LiftController import LiftController
 
+
+eventlet.monkey_patch()
+async_mode = None
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, async_mode="threading")
+socketio = SocketIO(app, async_mode=async_mode)
 # lift controller in programming
 program_lift_controller = LiftController(socketio)
 
@@ -32,16 +37,15 @@ def floor_valid(floor_n: int)->bool:
 
 @app.route("/")
 def hello():
-    program_lift_controller.emit('lifts all', program_lift_controller.get_all_status())
     return render_template('base.html',
                            lift_ids=(i for i in range(1, 6)),
-                           key_ids=(i for i in range(1, 21)))
+                           key_ids=(i for i in range(1, 21)), async_mode=socketio.async_mode)
 
 
 @socketio.on('connect', namespace='/lifts')
 def test_connect():
     # 这里SOCKETIO ON是没有MESSAGE的？
-    emit('lifts all', program_lift_controller.get_all_status())
+    program_lift_controller.emit('lifts all', program_lift_controller.get_all_status())
 
 
 @socketio.on('disconnect', namespace='/lifts')
@@ -83,6 +87,6 @@ def handle_key_clicked(json_v):
 
 
 if __name__ == '__main__':
-    socketio.run(debug=True, app=app, host='127.0.0.1', port=5000)
+    socketio.run(app=app, host='127.0.0.1', port=5000)
 
 

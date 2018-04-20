@@ -3,7 +3,7 @@
 """
 import json
 from queue import Queue
-from threading import Thread
+from threading import Thread, Lock
 import time
 import random
 from typing import Tuple, List, TYPE_CHECKING
@@ -26,6 +26,7 @@ class LiftController:
         self._remained_jobs: Queue = Queue()
         # 开启任务
         self._start_deamon()
+        self._emit_lock = Lock()
 
     def _start_deamon(self):
         """
@@ -51,8 +52,9 @@ class LiftController:
         """
         发送消息
         """
-        print(*args, **kwargs)
-        return self._socket.emit(*args, **kwargs, namespace='/lifts')
+        with self._emit_lock:
+            print(*args, **kwargs)
+            return self._socket.emit(*args, **kwargs, namespace='/lifts', broadcast=True)
 
     @staticmethod
     def _dispatch_job(job: Job):

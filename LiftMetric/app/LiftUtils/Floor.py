@@ -5,6 +5,9 @@ from typing import List, TYPE_CHECKING
 from collections import namedtuple
 from copy import copy, deepcopy
 
+import eventlet
+eventlet.monkey_patch()
+
 from .LiftState import LiftState
 from .Job import Job
 

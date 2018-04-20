@@ -4,6 +4,9 @@
 from enum import Enum
 from threading import Lock
 
+import eventlet
+eventlet.monkey_patch()
+
 from .LiftState import LiftState
 
 

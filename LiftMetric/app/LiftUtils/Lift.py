@@ -5,6 +5,9 @@ from typing import Tuple, List, TYPE_CHECKING, Dict, Set
 from functools import wraps
 import bisect
 
+import eventlet
+eventlet.monkey_patch()
+
 from .LiftState import LiftState
 
 if TYPE_CHECKING:
