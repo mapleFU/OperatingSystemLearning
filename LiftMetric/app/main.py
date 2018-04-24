@@ -39,7 +39,9 @@ def floor_valid(floor_n: int)->bool:
 def hello():
     return render_template('base.html',
                            lift_ids=(i for i in range(1, 6)),
-                           key_ids=(i for i in range(1, 21)), async_mode=socketio.async_mode)
+                           key_ids=(i for i in range(1, 21)),
+                           max_key=20,
+                           async_mode=socketio.async_mode)
 
 
 @socketio.on('connect', namespace='/lifts')
@@ -87,6 +89,6 @@ def handle_key_clicked(json_v):
 
 
 if __name__ == '__main__':
-    socketio.run(app=app, host='127.0.0.1', port=5000)
+    socketio.run(app=app, host='127.0.0.1', port=5000, debug=True)
 
 
