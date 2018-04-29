@@ -1,7 +1,7 @@
 package Memory;
 
 public class Code {
-    private int codeID;
+    private final int codeID;
 
     /*
     constructor
