@@ -10,6 +10,20 @@
     <link href="https://cdn.bootcss.com/bootstrap/4.1.0/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.bootcss.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
 
+    <style>
+        .lift-floor-badge {
+            width: 30px;
+        }
+
+        .lift-state-badge {
+            width: 40px;
+        }
+
+        .floor-number-badge {
+            width: 50px;
+        }
+    </style>
+
     <!--<script src={{url_for('static', filename="settle_state.js")}}></script>-->
     <script>
 
@@ -267,8 +281,8 @@
                     <!--楼层和-->
                     <form class="form-inline">
                         <div class="form-group mb-2">
-                            <span class="status badge badge-secondary mr-2">静止</span>
-                            <span class="floor badge badge-secondary mr-2">1</span>楼
+                            <span class="status badge badge-secondary mr-2 lift-state-badge">静止</span>
+                            <span class="floor badge badge-secondary mr-2 lift-floor-badge">1</span>楼
                         </div>
                         <label for="staticEmail2" class="sr-only">添加前往你在表单中填写的楼层</label>
                         <div class="form-group mx-sm-3 mb-2">
@@ -304,7 +318,7 @@
                     {% for j in range(1, 6) %}
                         <div id="floor{{ (key_id - 1) * 5 + j }}">
 
-                            <span class="badge badge-dark"> 第 {{ (key_id - 1) * 5 + j }} 楼 </span>
+                            <span class="badge badge-dark floor-number-badge"> 第 {{ (key_id - 1) * 5 + j }} 楼 </span>
                             <!--每层楼对应的固定的信息-->
                             <button class="btn btn-primary mb-2 up-button" floor="{{ (key_id - 1) * 5 + j }}">向上</button>
                             <button class="btn btn-primary mb-2 down-button" floor="{{ (key_id - 1) * 5 + j }}">向下</button>
