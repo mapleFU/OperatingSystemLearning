@@ -80,10 +80,10 @@ class Lift:
         with self._state_lock:
             return self._state
 
-    def _check_reversed_jobs_under_locks(self):
+    def _check_reversed_jobs_under_locks(self)->bool:
         """
         检查
-        :return:
+        :return: 是否存在reversed job
         """
 
         floor_r_tasks: List[Job] = self._reversed_jobs[self._floor]
@@ -92,7 +92,9 @@ class Lift:
                 self._controller.add_job(from_floor=floor_n.beg, to_floor=floor_n.to)
             else:
                 self._controller.add_outer_job(from_floor=floor_n.beg, drc=floor_n.dct)
+        task_num = len(floor_r_tasks)
         floor_r_tasks.clear()
+        return task_num != 0
 
     def __init__(self, lnum: int, controller: 'LiftController'=None):
         with self._class_lock:
@@ -242,15 +244,23 @@ class Lift:
 
             # 上楼时间
             sleep(Lift.FLOOR_STEP_TIME)
+            need_sleep = False
             with self._state_lock:
+
                 self._floor += step
                 if self._floor in self._inner_jobs:
+                    need_sleep = True
                     self._inner_jobs.remove(self._floor)
                     self._report_inner_job_change()
                 if self._floor != self._farest:
-                    self._check_reversed_jobs_under_locks()
+
+                    need_sleep = need_sleep or self._check_reversed_jobs_under_locks()
                 self._floor_arrived_under_lock()
                 self.report_status_change()
+            if need_sleep and self._floor != self._farest:
+                # 休眠的美妙停站时间
+                print(f"Lift {self._floor} sleep for 0.5s")
+                sleep(Lift.FLOOR_STEP_TIME)
         # 停止工作，FINALLY
         with self._state_lock:
             self._state = LiftState.REST
@@ -328,6 +338,7 @@ class Lift:
             if self._state == LiftState.REST:
                 # 需要重新被启动
                 self._boot_with_to(to)
+                self._inner_jobs.add(to)
                 self._report_inner_job_change()
             elif need_to_add or must_added:
                 if abs(self._farest - self._floor) < abs(to - self._floor):

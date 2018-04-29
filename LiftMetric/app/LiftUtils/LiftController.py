@@ -38,6 +38,8 @@ class LiftController:
                 if not self._dispatch_job(cur_job):
                     # 没有成功添加
                     self._remained_jobs.put(cur_job)
+                    # 需要放弃线程的优先权
+                    time.sleep(0)
         t = Thread(target=task_start)
         t.daemon = True
         t.start()

@@ -44,7 +44,6 @@
             });
             // 电梯楼层更换
             socket.on('lift change', function (msg) {
-                console.log("recv lift change");
                 // change_elevator_with_json(msg);
                 msg = JSON.parse(msg);
                 var jq = $("#lift" + msg['lift_number'] + " .floor");
@@ -55,7 +54,6 @@
 
             // 单个电梯的状态被更改了
             socket.on('lift status change', function (msg) {
-                console.log("lift status change");
                 $("#lift" + msg["lift_number"] + " .status").html(status_to_ch(msg["status"]));
             });
 
@@ -90,7 +88,7 @@
 
 
                  } else {
-                     console.log("change to down");
+                     // console.log("change to down");
                      var up_button = $("#floor"+json_var["floor"]+" .down-button");
                      up_button.removeClass(rm_class);
                      up_button.addClass(added_class);
@@ -111,7 +109,7 @@
 
             function lift_change_floor(lift_id, floor_id) {
                 var curButton = $(`[lift-id=${lift_id}] [floor-id=${floor_id}]`);
-                console.log("change: ", curButton);
+                // console.log("change: ", curButton);
                 if (curButton.hasClass("btn-light")) {
                     curButton.removeClass("btn-light");
                 }
@@ -124,10 +122,12 @@
             }
 
             socket.on('lift innertask', function (json_var) {
-                var floor = json_var["lift number"];
+                var lift = json_var["lift number"];
+                // var floor = json_var["floor"];
                 const set1 = new Set(json_var["tasks"]);
+                console.log("recv inner task with ", lift, " and ", set1);
                 for (var i = 1; i <= 20; i++) {
-                    var curButton = $(`[lift-id=${floor}] [floor-id=${floor}]`);
+                    var curButton = $(`[lift-id=${lift}] [floor-id=${i}]`);
                     if (set1.has(i)) {
                         if (!curButton.hasClass("btn-danger") && !curButton.hasClass("btn-secondary")) {
                             curButton.removeClass("btn-light");
@@ -166,10 +166,10 @@
 
             $("button.inner-lift").click(function () {
                 event.preventDefault();
-                console.log("Clicked!");
+                {#console.log("Clicked!");#}
                 var cur_jq = $(this);
                 var lift_id = cur_jq.parent().parent().attr("lift-id");
-                console.log("liftID: ", lift_id);
+                {#console.log("liftID: ", lift_id);#}
                 socket.emit("inner job", {
                     "lift_number": parseInt(lift_id),
                     "to": parseInt(cur_jq.html())
@@ -189,7 +189,7 @@
                         direc: "up"
                     };
                     socket.emit("outer job", send_dict);
-                    console.log(send_dict);
+                    // console.log(send_dict);
                 }
 
             });
@@ -207,7 +207,7 @@
                         direc: "down"
                     };
                     socket.emit("outer job", send_dict);
-                    console.log(send_dict);
+                    {#console.log(send_dict);#}
                 }
             });
 
@@ -217,7 +217,7 @@
                 var button_id = cur_jq.attr("id");
                 var div_id = button_id.replace("inner_click", "");
                 var inputs = $("#lift"+div_id).find('input[name="想按几楼嘞"]');
-                console.log(inputs);
+                {#console.log(inputs);#}
                 var val = inputs.val();
                 var i_val = parseInt(val);
                 if (i_val <= 20 && i_val >= 0) {
