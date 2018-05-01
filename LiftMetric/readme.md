@@ -1,27 +1,144 @@
 # 电梯调度算法设计
-## 用户接口
+## 启动电梯
 
-1. 添加一个 从beg楼到end楼的人
-2. 在电梯内瞎几把按键
+项目环境：`Python 3.6.5`
+
+本项目配置了`docker`.
+
+运行可以在目录下
+
+`docker build -t fxw:test .`
+
+`docker run -p 5000:5000 fxw:test`
+
+并访问http://localhost:5000.
+
+如果配置了Python环境，可以
+
+```
+virtualenv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+python manage.py
+```
+
+并访问http://localhost:5000.
+
+如果以上不行，可以访问我的网站：
+
+http://maplewish.cn/lifts
+
+注意，以上的电梯程序可以同时处理多个用户，所以我的网站最开始可能不是全部在1楼的状态。
+
+## 用户接口与使用
+
+### 全局界面
+
+![全局界面](../LiftMetric/doc/docpic/全局界面.png)
+
+### 楼层按键
+
+![屏幕快照 2018-05-01 下午9.36.25](../LiftMetric/doc/docpic/屏幕快照 2018-05-01 下午9.36.25.png)
+
+在电梯内部，按键后，电梯状态显示会添加楼层和运动状态
+
+同时，灰色的部分表示楼层内xx楼的按钮是亮的。
+
+输入数字按“走，去这楼”或者直接按楼层都可以有这个效果。
+
+### 楼层按钮
+
+按理说题目要求“一楼有五个按钮”，但是我觉得做一个跟做20楼五个都亮的也没什么区别…就每层楼做了一个按钮。
+
+![楼层按钮](../LiftMetric/doc/docpic/楼层按钮.png)
+
+可以看到，最下面按钮亮的会变成灰色，由于没有内部任务，所以最上面一排没有变化。但是电梯仍然在运动。
+
+### 添加人物对象
+
+to: from:字段添加人物对象。
 
 ## 基本算法
 
 ### 电梯的状态
 * 上行
+* 上行静止
 * 下行
+* 下行静止
 * 静止
 
-上行和下行的状态中有等待的属性。电梯的状态会根据状态开启一个线程，并暴露有这个基本的状态。
+1. 上行和下行的状态中有等待的属性。电梯的状态会根据状态开启一个线程，并暴露有这个基本的状态。
+2. 有如下的状态转移图
+
+![电梯状态转移图 (1)](../LiftMetric/doc/docpic/电梯状态转移图 (1).png)
+
 ### 电梯的调度算法
-#### 电梯的选择
+#### 外部任务
+
+程序中，我把“第5楼按上键”这样的**外层按键操作**叫做**外部任务**
+
+我在`LiftControler`里面开启了一个线程，每次有外部的任务请求就放到一个阻塞队列中，这个线程中不断处理调度请求。
+
+```python
+    def _start_deamon(self):
+        """
+        开启一个处理JOB的守护线程
+        """
+        def task_start():
+            while True:
+                cur_job = self._remained_jobs.get(block=True, timeout=100000)
+                if not self._dispatch_job(cur_job):
+                    # 没有成功添加
+                    self._remained_jobs.put(cur_job)
+                    # 需要放弃线程的优先权
+                    time.sleep(0)
+        t = Thread(target=task_start)
+        t.daemon = True
+        t.start()
+```
+
 按下电梯后，会在LiftController添加一个信号，这个信号是未受理的。它的内容包含去几楼。
 
 检查这些未受理的信息，找到最好的调度的电梯\(可调度的电梯中选择最近的\)。并删除这个信号。
+
+![电梯调度算法](../LiftMetric/doc/docpic/电梯调度算法.png)
 
 ### 电梯的运行算法
 运行中的电梯每隔t1时间会改变一次楼层的属性，修改的时候是lock的。同一层的运行电梯不会被调度。
 
 电梯保有自身的楼层属性和想要去的楼层的信息。这个信息是有序的。
+
+```python
+    def __init__(self, lnum: int, controller: 'LiftController'=None):
+        with self._class_lock:
+            self.lift_objects.append(self)
+        # 是一个常量！
+        self.LNUM = lnum
+        # 反向工作，可能被调度的对象反向行走. 形式为楼层->列表的映射
+        self._reversed_jobs: Dict[int, List[Job]] = {i: list() for i in range(1, 21)}
+        # 内部需要到达的工作
+        self._inner_jobs: Set[int] = set()
+
+        self._state_lock = RLock()
+        # 初始化为静止的状态
+        self._state = LiftState.REST
+        # 父控制者
+        self._controller = controller
+        # 对应的楼层
+        self._floor = 1
+
+        # 需要执行的任务
+        self._farest: int = None
+        self._task = None
+        self._task_lock: RLock = RLock()
+```
+
+每次接受外部任务的时候，电梯会试图更新`_farest`属性，这个属性表示电梯“运行时最远的任务”，电梯运行到farest的时候会停止。
+
+![任务的副本](../LiftMetric/doc/docpic/任务的副本.png)
+
+![电梯运行算法(1)](../LiftMetric/doc/docpic/电梯运行算法(1).png)
 
 ### 电梯的status
 
@@ -41,6 +158,8 @@ def status(self):
 
 
 ### SocketIO 事件
+
+本项目是一个web项目，后端使用了flask-socketio + eventlet, 支持多线程。
 
 发送方：服务端
 
@@ -105,12 +224,5 @@ floor 任务负载，处理外层任务
 
 任务的集合
 
-## 请求和相应
 
-add job —> LiftController：放入队列，试图增加请求 —> 全部失败则放到队列尾部
-
-增加请求：查询每个jobs
-
-## 互斥的信息
-电梯的状态，
 
