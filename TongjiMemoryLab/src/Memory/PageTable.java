@@ -9,7 +9,7 @@ public class PageTable {
         PTEArray = new PageTableEntry[size];
         for (int i = 0; i < PTEArray.length; i++) {
             // 自动初始化的PTE
-            PTEArray[i] = new PageTableEntry();
+            PTEArray[i] = new PageTableEntry(i);
         }
     }
 
@@ -26,13 +26,20 @@ public class PageTable {
             return pte;
         }
     }
+
+    void setPTEProtectbitsFalse(int virtualAdd) {
+        PageTableEntry pte = PTEArray[virtualAdd];
+        if (!pte.getProtectbits()) {
+            pte.setProtectbits(false);
+        }
+    }
 }
 
 class PageFaultException extends Exception
 {
     // 缺页的PTE
     PageTableEntry pageTableEntry;
-    public PageFaultException(PageTableEntry pageTableEntry)
+    PageFaultException(PageTableEntry pageTableEntry)
     {
         super();
         this.pageTableEntry = pageTableEntry;

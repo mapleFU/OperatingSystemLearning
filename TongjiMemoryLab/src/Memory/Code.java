@@ -6,11 +6,9 @@ public class Code {
     /*
     constructor
      */
-    public Code(int codeID) {
+    Code(int codeID) {
         this.codeID = codeID;
     }
-
-
 
     @Override
     public String toString() {
