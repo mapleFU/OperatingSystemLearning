@@ -122,10 +122,8 @@
               <first_editor relative-caret-position="-73">
                 <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
                 <folding>
-                  <marker date="1525183587000" expanded="true" signature="11:718" ph="h2: #### 用户接口" />
-                  <marker date="1525183587000" expanded="true" signature="11:4481" ph="h2: #### 用户接口" />
-                  <marker date="1525183587000" expanded="true" signature="844:1555" ph="h4: ######## 电梯的选择" />
-                  <marker date="1525183587000" expanded="true" signature="894:1456" ph="code fence: ```&#10;&#10;```" />
+                  <marker date="1525183848000" expanded="true" signature="11:706" ph="h2: #### 用户接口" />
+                  <marker date="1525183848000" expanded="true" signature="11:4798" ph="h2: #### 用户接口" />
                 </folding>
               </first_editor>
               <second_editor />
@@ -394,7 +392,7 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32373387" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32373387" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.31976166" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.21671991" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32969216" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -827,10 +825,8 @@
           <first_editor relative-caret-position="-73">
             <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
             <folding>
-              <marker date="1525183587000" expanded="true" signature="11:718" ph="h2: #### 用户接口" />
-              <marker date="1525183587000" expanded="true" signature="11:4481" ph="h2: #### 用户接口" />
-              <marker date="1525183587000" expanded="true" signature="844:1555" ph="h4: ######## 电梯的选择" />
-              <marker date="1525183587000" expanded="true" signature="894:1456" ph="code fence: ```&#10;&#10;```" />
+              <marker date="1525183848000" expanded="true" signature="11:706" ph="h2: #### 用户接口" />
+              <marker date="1525183848000" expanded="true" signature="11:4798" ph="h2: #### 用户接口" />
             </folding>
           </first_editor>
           <second_editor />
