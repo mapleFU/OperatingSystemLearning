@@ -17,9 +17,9 @@ class LiftState(Enum):
         :return: 对应的楼梯状态
         """
         delta = to - beg
-        if beg == 0:
+        if delta == 0:
             state = LiftState.REST
-        elif beg > 0:
+        elif delta > 0:
             state = LiftState.UP
         else:
             state = LiftState.DOWN

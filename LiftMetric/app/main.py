@@ -66,6 +66,12 @@ def handle_add_job(json_msg):
     program_lift_controller.add_job(from_floor, to_floor)
 
 
+@socketio.on('close elevator', namespace='/lifts')
+def handle_close_elevator(json_msg):
+    lift_id = int(json_msg["lift_number"])
+    raise NotImplemented()
+
+
 @socketio.on('inner job', namespace='/lifts')
 def handle_inner_job(json_msg):
     if not floor_valid(json_msg["to"]):

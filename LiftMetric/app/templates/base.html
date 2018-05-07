@@ -180,19 +180,28 @@
 
             $("button.inner-lift").click(function () {
                 event.preventDefault();
-                {#console.log("Clicked!");#}
                 var cur_jq = $(this);
                 var lift_id = cur_jq.parent().parent().attr("lift-id");
-                {#console.log("liftID: ", lift_id);#}
                 socket.emit("inner job", {
                     "lift_number": parseInt(lift_id),
                     "to": parseInt(cur_jq.html())
                 });
             });
 
+            /*
+            关闭电梯的信息
+             */
+            $("button.close-door").click(function () {
+                event.preventDefault();
+                var cur_jq = $(this);
+                var lift_id = cur_jq.parent().parent().attr("lift-id");
+                socket.emit("close elevator", {
+                    "lift_number": parseInt(lift_id)
+                });
+            });
+
             $("button.up-button").click(function () {
                 event.preventDefault();
-                // console.log("按了上了，狗屎");
                 var cur_jq = $(this);
                 var floor_n = cur_jq.attr("floor");
                 var text = $("#floor" + floor_n + " .up").html();
@@ -215,7 +224,7 @@
                 var floor_n = cur_jq.attr("floor");
                 var text = $("#floor" + floor_n + " .down").html();
                 var i_value = parseInt(floor_n);
-                if (text !== "⬇" && i_value > 0 && i_value <= 20) {
+                if (text !== "⬇" && i_value > 1 && i_value <= 20) {
                     var send_dict = {
                         floor: floor_n,
                         direc: "down"
@@ -244,6 +253,8 @@
                 inputs.val('');
 
             });
+
+
         });
     </script>
 </head>
@@ -265,6 +276,7 @@
                     {% endfor %}
                 </div>
             {% endfor %}
+            <button class="btn btn-info close-door">关门</button>
         </div>
     {% endfor %}
 

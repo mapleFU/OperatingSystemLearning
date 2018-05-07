@@ -44,6 +44,10 @@ class LiftController:
         t.daemon = True
         t.start()
 
+    def close_elevator_door(self, lift_id: int):
+        lift = self._lifts[lift_id - 1]
+        lift.close_elevator()
+
     def get_all_status(self):
         """
         :return: 获得所有电梯的状态

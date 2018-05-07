@@ -1,5 +1,5 @@
 import json
-from threading import Thread, Lock, RLock
+from threading import Thread, Lock, RLock, Event
 from time import sleep
 from typing import Tuple, List, TYPE_CHECKING, Dict, Set
 from functools import wraps
@@ -16,6 +16,12 @@ if TYPE_CHECKING:
 
 
 class Lift:
+    def __str__(self)->str:
+        """
+        :rtype: str
+        """
+        return f"Lift({self.LNUM})"
+
     FLOOR_STEP_TIME = 1
     _class_lock: Lock = Lock()
     lift_objects: 'List[Lift]' = []
@@ -69,7 +75,7 @@ class Lift:
                 min_lift._floor_arrived_under_lock()
             else:
                 min_lift.add_job(init_job)
-
+            print(f"Dispatch Job {init_job} to {min_lift}.")
             # release all locks
             for l in Lift.lift_objects:
                 l._state_lock.release()
@@ -89,9 +95,15 @@ class Lift:
         floor_r_tasks: List[Job] = self._reversed_jobs[self._floor]
         for floor_n in floor_r_tasks:
             if floor_n.to is not None:
-                self._controller.add_job(from_floor=floor_n.beg, to_floor=floor_n.to)
+                thread = Thread(target=self._controller.add_job, kwargs={'from_floor': floor_n.beg,
+                                                                         'to_floor': floor_n.to})
+                thread.start()
+                # self._controller.add_job(from_floor=floor_n.beg, to_floor=floor_n.to)
             else:
-                self._controller.add_outer_job(from_floor=floor_n.beg, drc=floor_n.dct)
+                thread = Thread(target=self._controller.add_outer_job, kwargs={'from_floor': floor_n.beg,
+                                                                         'drc': floor_n.dct})
+                thread.start()
+                # self._controller.add_outer_job(from_floor=floor_n.beg, drc=floor_n.dct)
         task_num = len(floor_r_tasks)
         floor_r_tasks.clear()
         return task_num != 0
@@ -108,16 +120,24 @@ class Lift:
 
         self._state_lock = RLock()
         # 初始化为静止的状态
-        self._state = LiftState.REST
+        self._state: 'LiftState' = LiftState.REST
         # 父控制者
         self._controller = controller
         # 对应的楼层
         self._floor = 1
 
+        # 关闭的接口
+        self.close_event = Event()
+
         # 需要执行的任务
         self._farest: int = None
         self._task = None
         self._task_lock: RLock = RLock()
+
+    def close_elevator(self):
+        self.close_event.set()
+        sleep(0)
+        self.close_event.clear()
 
     def get_states(self):
         """
@@ -204,14 +224,6 @@ class Lift:
         """
         self._emit('lift change', self.status())
 
-    def floor_change_method(self, change_func):
-        @wraps(change_func)
-        def _floor_change(*args, **kwargs):
-            ret = change_func(*args, **kwargs)
-
-            return ret
-        return _floor_change
-
     def status_change_method(self, change_func):
         @wraps(change_func)
         def _status_change(*args, **kwargs):
@@ -228,6 +240,11 @@ class Lift:
         guard by _state_lock
         :return:
         """
+        # thread = Thread(target=self._controller.arrived, kwargs={
+        #     "lift": self,
+        #     "floor_n": self._floor,
+        # })
+        # thread.start()
         self._controller.arrived(lift=self, floor_n=self._floor)
 
     def _running_task(self, step: int):
@@ -260,7 +277,9 @@ class Lift:
             if need_sleep and self._floor != self._farest:
                 # 休眠的美妙停站时间
                 print(f"Lift {self._floor} sleep for 0.5s")
-                sleep(Lift.FLOOR_STEP_TIME)
+                self.close_event.wait(Lift.FLOOR_STEP_TIME)
+                self.close_event.clear()
+                # sleep(Lift.FLOOR_STEP_TIME)
         # 停止工作，FINALLY
         with self._state_lock:
             self._state = LiftState.REST
@@ -279,8 +298,17 @@ class Lift:
             for job in end_floor_list:
                 if job.to is not None:
                     self.add_inner_job(to=job.to)
-            self._floor_arrived_under_lock()
+                elif job.beg != self._floor:
+                    # try to clear outer job
+                    self._controller.add_outer_job(job.beg, job.direc)
             end_floor_list.clear()
+            for floor_lists in self._reversed_jobs.values():
+                if len(floor_lists) == 0:
+                    continue
+                for job in floor_lists:
+                    self._controller.add_outer_job(job.beg, job.direc)
+                floor_lists.clear()
+            self._floor_arrived_under_lock()
 
     def _start_task(self, step: int, state: 'LiftState', job: 'Job'=None, to: int=None):
         with self._task_lock:
