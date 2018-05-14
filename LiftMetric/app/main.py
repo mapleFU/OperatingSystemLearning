@@ -68,8 +68,9 @@ def handle_add_job(json_msg):
 
 @socketio.on('close elevator', namespace='/lifts')
 def handle_close_elevator(json_msg):
+    print(f"Close elevator Recv msg:{json_msg}")
     lift_id = int(json_msg["lift_number"])
-    raise NotImplemented()
+    program_lift_controller.close_elevator_door(lift_id)
 
 
 @socketio.on('inner job', namespace='/lifts')
@@ -80,11 +81,6 @@ def handle_inner_job(json_msg):
         lift_number=int(json_msg["lift_number"]),
         to=int(json_msg["to"])
     )
-
-
-@socketio.on('my event', namespace='/lifts')
-def handle_my_custom_event(json):
-    print('handle my event')
 
 
 @socketio.on('outer job', namespace='/lifts')

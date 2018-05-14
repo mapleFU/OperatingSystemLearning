@@ -204,25 +204,162 @@ floor 任务负载，处理外层任务
 
 ### main
 
-主程序，提供 flask 接口，给各个信息路由提供反应
+主程序，提供 flask 接口，给各个信息路由提供反应.
+
+维护了一个`program_lift_controller = LiftController(socketio)`, 作为全局的电梯调度控制器。
+
+接受的事件列出在socketio事件一节中, 如果出现某事件，以`add job` 为例：
+
+```python
+@socketio.on('inner job', namespace='/lifts')
+def handle_inner_job(json_msg):
+    if not floor_valid(json_msg["to"]):
+        return
+    program_lift_controller.add_inner_job(
+        lift_number=int(json_msg["lift_number"]),
+        to=int(json_msg["to"])
+    )
+```
+
+main会解析参数、判断异常并且把这个参数传输给`lift_controler`
 
 ### LiftUtils
 
-#### Jobs
-
-单个任务
-
-#### Lift
-
-单个电梯的信息
-
 #### LiftController
 
-电梯控制器
+电梯控制器，一个项目只存在一个电梯调度器，负责把用户的请求变为实际运行的逻辑。这个类的初始化如下：
 
-#### Task
+```python
 
-任务的集合
+class LiftController:
+    def __init__(self, socketio=None):
+        self._socket = socketio
+        self._lifts: Tuple[Lift] = tuple(Lift(i, self) for i in range(1, 6))
+        self._floors: Tuple[Floor] = tuple(Floor(i, self) for i in range(1, 21))
+        # 剩余工作的队列，对于到来的工作用FIFO
+        self._remained_jobs: Queue = Queue()
+        # 开启任务
+        self._start_deamon()
+```
 
 
+
+| 属性           | 类型                    | 作用                               |
+| -------------- | ----------------------- | ---------------------------------- |
+| _socket        | Flask-SocketIO.SocketIO | 表示连接的对象，用于发送信息       |
+| _lifts         | Tuple[LiftUtils.Lift]   | 维护的电梯\(这里是五个电梯\)的元组 |
+| _floors        | Tuple[LiftUtils.Floor]  | 维护的楼层\(这里是20个楼层\)的元组 |
+| _remained_jobs | queue.Queue             | 处理任务的**阻塞队列**             |
+
+| 函数                                                   |      |      |
+| ------------------------------------------------------ | ---- | ---- |
+| _start_deamon(self)                                    |      |      |
+| close_elevator_door(self, lift_id: int)                |      |      |
+| get_all_status(self)                                   |      |      |
+| emit(self, *args, **kwargs)                            |      |      |
+| _dispatch_job(job: Job)                                |      |      |
+| add_job(self, from_floor: int, to_floor: int)          |      |      |
+| add_outer_job(self, from_floor: int, drc: 'LiftState') |      |      |
+| arrived(self, lift: Lift, floor_n: int)                |      |      |
+| add_inner_job(self, lift_number: int, to: int)         |      |      |
+
+### Lift
+
+ 表示具体电影逻辑和电梯运行状态的类。
+
+```python
+class Lift:
+    def __init__(self, lnum: int, controller: 'LiftController'=None):
+        with self._class_lock:
+            self.lift_objects.append(self)
+        # 是一个常量！
+        self.LNUM = lnum
+        # 反向工作，可能被调度的对象反向行走. 形式为楼层->列表的映射
+        self._reversed_jobs: Dict[int, List[Job]] = {i: list() for i in range(1, 21)}
+        # 内部需要到达的工作
+        self._inner_jobs: Set[int] = set()
+
+        self._state_lock = RLock()
+        # 初始化为静止的状态
+        self._state: 'LiftState' = LiftState.REST
+        # 父控制者
+        self._controller = controller
+        # 对应的楼层
+        self._floor = 1
+
+        # 关闭的接口
+        self.close_event = Event()
+
+        # 需要执行的任务
+        self._farest: int = None
+        self._task = None
+        self._task_lock: RLock = RLock()
+```
+
+#### static
+
+| 属性         | 类型       | 作用                         |
+| ------------ | ---------- | ---------------------------- |
+| lift_objects | List[Lift] | 表示项目中的所有的电梯的列表 |
+
+### non-static
+
+| 属性           | 类型                    | 作用                                      |
+| -------------- | ----------------------- | ----------------------------------------- |
+| LNUM           | \(CONST\) int           | 表示电梯的序号                            |
+| _reversed_jobs | Dict[int, List[Job]]    | 被调度的方向的作业                        |
+| _inner_jobs    | Set[int]                | 电梯内部需要到的楼层，采用set类型便于访问 |
+| _state_lock    | RLock\(可重入锁\)       | 保护电梯状态的锁                          |
+| _state         | LiftUtils.LiftState     | 电梯的状态                                |
+| _controller    | LiftUtils.LiftControler | 电梯的控制器                              |
+| _floor         | int                     | 电梯所在的楼层                            |
+| close_event    | threading.Event         | 电梯开关门的Event                         |
+| _farest        | int                     | 任务中最远的任务                          |
+| _task          | threading.Thread        | 运行的任务线程                            |
+| _task_lock     | threading.Lock          | 表示电梯任务的锁                          |
+
+### Floor
+
+```python
+    def __init__(self, floor_n: int, controler: 'LiftController'):
+        self.floor = floor_n
+        self._controler = controler
+
+        self._uplist: List[Job] = []
+        self.__uplock: Lock = Lock()
+
+        self._downlist: List[Job] = []
+        self.__downlock: Lock = Lock()
+```
+
+|    属性    |          类型          |          作用          |
+| :--------: | :--------------------: | :--------------------: |
+|   floor    |     \(const\) int      |        表示楼层        |
+| _controler | LiftUtil.LiftControler |      楼梯的控制器      |
+|  _uplist   |       List[Job]        | 这一楼向上的任务的列表 |
+|  __uplock  |          Lock          |   守护向上的任务的锁   |
+| _downlist  |       List[Job]        | 这一楼向下的任务的列表 |
+| __downlock |          Lock          |   守护向下的任务的锁   |
+
+### Job
+
+表示电梯实际运行的任务，是`outer job`, `inner job`信息的一个封装。
+
+|  属性   |   类型    |                  功能                  |
+| :-----: | :-------: | :------------------------------------: |
+|  _gced  |   bool    |         表示这个是否依旧被使用         |
+| _gclock |   Lock    |             守护_gced的锁              |
+|   beg   |    int    |             任务的起始位置             |
+|   to    |    int    |              任务的末位置              |
+|   dct   | LiftState | 方向，表示接受任务后应该有的运行撞塌 u |
+
+### LiftState
+
+LiftState 是一个关于电梯状态的 Enum 枚举类型，
+
+| 状态 | 内容     |
+| ---- | -------- |
+| REST | 静止     |
+| UP   | 向上运行 |
+| DOWN | 向下运行 |
 

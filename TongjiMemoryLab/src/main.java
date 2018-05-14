@@ -13,8 +13,12 @@ public class main {
         VirtualMemory virtualMemory = new VirtualMemory(32, physicsMemory);
 
         Worker worker = new Worker(virtualMemory);
-        for (int i = 0; i <= 319; i++) {
-            worker.executeCode(i);
+        // execute code of rcg
+        RandomCodeGenerator rcg = new RandomCodeGenerator(320);
+        while (rcg.hasNext()) {
+            int value = rcg.next();
+//            System.out.println(value);
+            worker.executeCode(value);
         }
     }
 }

@@ -26,7 +26,7 @@ class LiftController:
         self._remained_jobs: Queue = Queue()
         # 开启任务
         self._start_deamon()
-        self._emit_lock = Lock()
+        # self._emit_lock = Lock()
 
     def _start_deamon(self):
         """
@@ -58,12 +58,12 @@ class LiftController:
         """
         发送消息
         """
-        with self._emit_lock:
-            print(*args, **kwargs)
-            return self._socket.emit(*args, **kwargs, namespace='/lifts', broadcast=True)
+        # with self._emit_lock:
+        print(*args, **kwargs)
+        return self._socket.emit(*args, **kwargs, namespace='/lifts', broadcast=True)
 
     @staticmethod
-    def _dispatch_job(job: Job):
+    def a:
         """
         选出最佳的电梯组合
         :yield: the one available elevator

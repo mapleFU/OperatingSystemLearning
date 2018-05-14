@@ -194,7 +194,7 @@
             $("button.close-door").click(function () {
                 event.preventDefault();
                 var cur_jq = $(this);
-                var lift_id = cur_jq.parent().parent().attr("lift-id");
+                var lift_id = cur_jq.parent().attr("lift-id");
                 socket.emit("close elevator", {
                     "lift_number": parseInt(lift_id)
                 });
@@ -203,6 +203,9 @@
             $("button.up-button").click(function () {
                 event.preventDefault();
                 var cur_jq = $(this);
+                if (!cur_jq.hasClass("btn-primary")) {
+                    return;
+                }
                 var floor_n = cur_jq.attr("floor");
                 var text = $("#floor" + floor_n + " .up").html();
                 var i_value = parseInt(floor_n);
@@ -221,6 +224,9 @@
                 event.preventDefault();
                 // console.log("按了下了，狗屎");
                 var cur_jq = $(this);
+                if (!cur_jq.hasClass("btn-primary")) {
+                    return;
+                }
                 var floor_n = cur_jq.attr("floor");
                 var text = $("#floor" + floor_n + " .down").html();
                 var i_value = parseInt(floor_n);
