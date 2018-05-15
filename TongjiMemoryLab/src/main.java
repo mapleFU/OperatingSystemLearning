@@ -3,6 +3,8 @@ import Memory.MMUTranslator;
 import Memory.PhysicsMemory;
 import Memory.VirtualMemory;
 
+import java.util.Iterator;
+
 public class main {
     public static void main(String[] args) {
         // 存储的硬件
@@ -14,10 +16,10 @@ public class main {
 
         Worker worker = new Worker(virtualMemory);
         // execute code of rcg
-        RandomCodeGenerator rcg = new RandomCodeGenerator(320);
+        Iterator<Integer> rcg = new RandomCodeGenerator(320);
+        // 准备对比与对比算法
         while (rcg.hasNext()) {
             int value = rcg.next();
-//            System.out.println(value);
             worker.executeCode(value);
         }
     }

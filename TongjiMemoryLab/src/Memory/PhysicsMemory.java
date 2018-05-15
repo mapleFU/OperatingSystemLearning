@@ -1,6 +1,7 @@
 package Memory;
 
 import Memory.EvictAlgorithm.EvictBase;
+import Memory.EvictAlgorithm.FIFOEvict;
 import Memory.EvictAlgorithm.LRUEvict;
 import javafx.util.Pair;
 
@@ -17,6 +18,7 @@ public class PhysicsMemory {
 
         // 开辟等于物理大小的evictor
         this.evictor = new LRUEvict(physicsMemorySize);
+//        this.evictor = new FIFOEvict(physicsMemorySize);
     }
 
     private int spareSpace; // 空闲的空间

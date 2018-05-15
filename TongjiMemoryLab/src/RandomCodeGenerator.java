@@ -7,7 +7,7 @@ import java.util.Random;
 /**
  * 用于标注生成乱序代码的类
  */
-public class RandomCodeGenerator implements Iterator {
+public class RandomCodeGenerator implements Iterator<Integer> {
     /**
      * 执行的指令的总条数
      */
