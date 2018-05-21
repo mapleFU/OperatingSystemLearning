@@ -13,10 +13,14 @@ public class RandomCodeGenerator implements Iterator<Integer> {
      */
     private final int codeNum;
     private final Random random;
-    private final int MIN_SPLIT = 15;
-    private final int MIN_CHOOSE = 10;
+    private final int MIN_SPLIT = 5;
+    private final int MIN_CHOOSE = 7;
 
     LinkedList<Pair<Integer, Integer>> freeList;
+
+    private void showFreeList() {
+        System.out.println(freeList);
+    }
 
     public RandomCodeGenerator(int codeNumber) {
         codeNum = codeNumber;
@@ -87,6 +91,16 @@ public class RandomCodeGenerator implements Iterator<Integer> {
             System.err.println("Beg: " + currentBeg + " , End:" + currentEnd);
         }
         return currentCursor++;
+    }
+
+    public static void main(String[] args) {
+        RandomCodeGenerator randomCodeGenerator = new RandomCodeGenerator(320);
+        int cnt = 0;
+        while (randomCodeGenerator.hasNext()) {
+            System.out.println(randomCodeGenerator.next());
+            ++cnt;
+        }
+        System.out.println("Count all " + cnt);
     }
 
 }

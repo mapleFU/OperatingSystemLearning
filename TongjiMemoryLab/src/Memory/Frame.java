@@ -44,6 +44,10 @@ public class Frame {
         }
     }
 
+    public int getFrameID() {
+        return begin;
+    }
+
     public int getBegin() {
         return begin;
     }

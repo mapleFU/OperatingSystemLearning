@@ -3,40 +3,34 @@ package Memory;
 
 import javafx.util.Pair;
 
+/**
+ * MMU 转换器，能够将虚拟地址转换成物理空间的地址
+ */
 public class MMUTranslator {
     // 去除
     private VirtualMemory virtualMemory;
     private PhysicsMemory physicsMemory;
     private PageTable pageTable;
-    public MMUTranslator(VirtualMemory virtualMemory, PhysicsMemory physicsMemory) {
+    MMUTranslator(VirtualMemory virtualMemory, PhysicsMemory physicsMemory) {
         this.virtualMemory = virtualMemory;
         this.physicsMemory = physicsMemory;
         // 创建虚拟内存大小的PTE
         pageTable = new PageTable(virtualMemory.getVirtualSize());
     }
 
-    /*
-    包内用于GET
+    /**
+     * 没有采用TLB的一级MMUTranslator.
+     * @param vpn 需要获取的虚拟页面地址
+     * @return 对应的codeID所在的
      */
-    Frame getFrame(int codeID) {
+    Frame getFrame(int vpn) {
         PageTableEntry codePte;
         try {
-            codePte = pageTable.getPTE(codeID);
+            // 先获取页面的 PTE
+            codePte = pageTable.getPTE(vpn);
         } catch (PageFaultException e) {
-            // 处理PAGE FAULT
-            PageTableEntry to_move_pte = e.pageTableEntry;
-            // 加载到物理存储空间中, 并且返回frame
-            Pair<Integer, Integer> valuePair = physicsMemory.loadToPhysicsMemory(to_move_pte);
-            int newFrameID = valuePair.getKey();
-            int oldFrameID = valuePair.getValue();
-            // set false
-            if (oldFrameID != -1) {
-                // there is old value.
-                pageTable.setPTEProtectbitsFalse(oldFrameID);
-            }
-            codePte = to_move_pte;
-            to_move_pte.setProtectbits(true);
-            to_move_pte.setPFN(newFrameID);
+            // 处理page fault
+            codePte = handlePageFault(e);
         }
         // 获得偏移量对应的code
 
@@ -46,7 +40,20 @@ public class MMUTranslator {
         return physicsMemory.getPhysicFrame(codePte.getPFN());
     }
 
-    private void handlePageFault() {
-
+    private PageTableEntry handlePageFault(PageFaultException e) {
+        // 处理PAGE FAULT
+        PageTableEntry to_move_pte = e.pageTableEntry;
+        // 加载到物理存储空间中, 并且返回frame
+        Pair<Integer, Integer> valuePair = physicsMemory.loadToPhysicsMemory(to_move_pte);
+        int newFrameID = valuePair.getKey();
+        int oldFrameID = valuePair.getValue();
+        // set false
+        if (oldFrameID != -1) {
+            // 设置旧值(被Evict的)的保护位为false
+            pageTable.setPTEProtectbitsFalse(oldFrameID);
+        }
+        to_move_pte.setProtectbits(true);
+        to_move_pte.setPFN(newFrameID);
+        return to_move_pte;
     }
 }

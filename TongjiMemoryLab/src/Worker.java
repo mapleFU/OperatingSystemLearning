@@ -15,5 +15,4 @@ public class Worker {
         // 具体处理指令
         System.out.println("Execute: " + code.toString());
     }
-
 }

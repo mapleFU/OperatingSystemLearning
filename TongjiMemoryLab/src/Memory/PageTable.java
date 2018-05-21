@@ -8,7 +8,7 @@ public class PageTable {
         pageTableSize = size;
         PTEArray = new PageTableEntry[size];
         for (int i = 0; i < PTEArray.length; i++) {
-            // 自动初始化的PTE
+            // 自动初始化的PTE, 给予PFN -- i
             PTEArray[i] = new PageTableEntry(i);
         }
     }

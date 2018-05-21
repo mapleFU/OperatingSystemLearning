@@ -10,6 +10,7 @@ public class LRUEvict extends EvictBase {
         // fill in lruSize
         super(size);
         intList = new LinkedList<>();
+        evictAlgoName = "LRU";
     }
 
     @Override

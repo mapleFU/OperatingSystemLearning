@@ -13,6 +13,7 @@ public class FIFOEvict extends EvictBase {
     public FIFOEvict(int lruSize) {
         super(lruSize);
         fifoUsedQueue = new LinkedList<>();
+        evictAlgoName = "FIFO";
     }
 
     @Override

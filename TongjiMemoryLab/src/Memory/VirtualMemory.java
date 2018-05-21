@@ -14,7 +14,7 @@ public class VirtualMemory {
     }
 
     public Code getCode(int codeNum) {
-
+        // 这一步相对来说应该是直接get pte?
         Frame frame = null;
         frame = mmuTranslator.getFrame(getVPN(codeNum));
         // 获得偏移量对应的code
