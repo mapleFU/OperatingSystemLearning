@@ -2,12 +2,12 @@
  * https://stackoverflow.com/questions/42566161/javafx-and-the-observer-pattern-updating-a-ui
  */
 
+import Generator.RandomCodeGenerator;
 import Memory.PhysicsMemory;
+import Memory.Worker;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXListView;
 import com.jfoenix.controls.JFXTextField;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+@Deprecated
 public class RunningScene extends GridPane {
     private final Stage primaryStage;
     // 决定ctx的两个List

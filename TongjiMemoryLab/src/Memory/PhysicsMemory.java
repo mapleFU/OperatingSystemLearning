@@ -3,13 +3,28 @@ package Memory;
 import Memory.EvictAlgorithm.EvictBase;
 import Memory.EvictAlgorithm.FIFOEvict;
 import Memory.EvictAlgorithm.LRUEvict;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.util.Pair;
 
 public class PhysicsMemory {
+    public int getPhysicsMemorySize() {
+        return physicsMemorySize;
+    }
+
     private final int physicsMemorySize;
     private Frame[] frames;
     private HardDiskMemory hardDiskMemory;
 
+    /**
+     * 便于添加属性
+     * @return
+     */
+    public IntegerProperty[] getFrameProperties() {
+        return frameProperties;
+    }
+
+    private IntegerProperty[] frameProperties;
     /**
      * page的信息是否变更过
      */
@@ -22,6 +37,11 @@ public class PhysicsMemory {
         changed = false;
         this.physicsMemorySize = physicsMemorySize;
         frames = new Frame[physicsMemorySize];
+        frameProperties = new IntegerProperty[physicsMemorySize];
+        for (int i = 0; i < physicsMemorySize; i++) {
+            frameProperties[i] = new SimpleIntegerProperty();
+        }
+
         this.hardDiskMemory = hardDiskMemory;
 
         this.spareSpace = physicsMemorySize;
@@ -67,6 +87,7 @@ public class PhysicsMemory {
                 if (frames[i] == null) {
                     useCode(i);
                     frames[i] = this.hardDiskMemory.releaseFrame(bios);
+                    frameProperties[i].set(frames[i].getFrameID());
                     retFrame = frames[i];
                     newPosition = i;
                     --spareSpace;
@@ -79,6 +100,7 @@ public class PhysicsMemory {
             System.out.println("evict frame begin with " + frames[evictPos].getBegin() + " in physics memory by " + evictor);
             this.hardDiskMemory.addFrame(frames[evictPos]);
             frames[evictPos] = hardDiskMemory.releaseFrame(bios);
+            frameProperties[evictPos].set(frames[evictPos].getFrameID());
             retFrame = frames[evictPos];
             ++pageFaultCount;
             newPosition = evictPos;
@@ -99,7 +121,7 @@ public class PhysicsMemory {
      * @return array for page frame id
      *         if frame is null, then return -1.
      */
-    private int[] getPageNumbersInPhysicMemory() {
+    public int[] getPageNumbersInPhysicMemory() {
         int[] pageNumbers = new int[frames.length];
         for (int i = 0; i < frames.length; i++) {
             if (frames[i] == null) {

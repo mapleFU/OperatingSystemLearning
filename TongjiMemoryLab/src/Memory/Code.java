@@ -1,6 +1,6 @@
 package Memory;
 
-public class Code {
+class Code {
     private final int codeID;
 
     /*

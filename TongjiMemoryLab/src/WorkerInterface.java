@@ -1,12 +1,9 @@
 import Memory.EvictAlgorithm.EvictAlgoFactory;
 import Memory.EvictAlgorithm.EvictBase;
-import Memory.EvictAlgorithm.FIFOEvict;
 import Memory.PhysicsMemory;
+import Memory.Worker;
 import com.jfoenix.controls.*;
 import javafx.application.Application;
-import javafx.event.EventHandler;
-import javafx.event.EventType;
-import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -21,6 +18,7 @@ import java.util.List;
 /**
  * 对于Worker运行的
  */
+@Deprecated
 public class WorkerInterface extends Application {
 
     public static void main(String[] args) {

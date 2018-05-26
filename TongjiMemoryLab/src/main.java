@@ -1,10 +1,11 @@
+import Generator.RandomCodeGenerator;
 import Memory.EvictAlgorithm.EvictBase;
 import Memory.EvictAlgorithm.FIFOEvict;
 import Memory.EvictAlgorithm.LRUEvict;
 import Memory.HardDiskMemory;
-import Memory.MMUTranslator;
 import Memory.PhysicsMemory;
 import Memory.VirtualMemory;
+import Memory.Worker;
 import javafx.util.Pair;
 
 import java.util.Iterator;
@@ -38,7 +39,6 @@ public class main {
             int value = rcg.next();
             // worker1 执行
             worker1.executeCode(value);
-//            worker2.executeCode(value);
         }
 
         // compare physics

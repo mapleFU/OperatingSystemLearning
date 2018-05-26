@@ -1,0 +1,18 @@
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.GridPane?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<GridPane fx:controller="OSMainController"
+          xmlns:fx="http://javafx.com/fxml" alignment="center" hgap="10" vgap="10">
+    <padding>
+        <Insets top="10" right="10" bottom="10" left="10" />
+    </padding>
+
+    <children>
+        <Label text="Frame1" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+        <Label text="Frame2" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+        <Label text="Frame3" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+        <Label text="Frame4" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+    </children>
+</GridPane>
