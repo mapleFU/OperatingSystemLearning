@@ -6,12 +6,12 @@ import Memory.PhysicsMemory;
 import Memory.Worker;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.util.Pair;
 import models.PhysicMemoryBean;
 
@@ -21,7 +21,8 @@ import java.util.Iterator;
 import java.util.ResourceBundle;
 
 public class OSMainController implements Initializable{
-    private static class ShownCode {
+    // it should be public
+    public static class ShownCode {
         public int getCodenum() {
             return codenum.get();
         }
@@ -44,6 +45,10 @@ public class OSMainController implements Initializable{
             return physicMemory;
         }
 
+        public void setPhysicMemory(int physicMemory) {
+            this.physicMemory.set(physicMemory);
+        }
+
         private final IntegerProperty physicMemory;
 
         private ShownCode(int coden) {
@@ -54,6 +59,15 @@ public class OSMainController implements Initializable{
             }));
         }
     }
+
+    @FXML
+    private ToggleGroup radioGroup;
+
+    @FXML
+    private Toggle toggle1;
+
+    @FXML
+    private Toggle toggle2;
 
     @FXML
     private Button executeNext;
@@ -71,15 +85,19 @@ public class OSMainController implements Initializable{
      * 展示的FRAME序号
      */
     @FXML
-    private Button[] shownFrames;
+    private ArrayList<Button> shownFrames;
+
 
     /**
      * 各个算法的frameList
-     * is a ctx
+     * 以及对应的上下文
      */
-    private ArrayList<Button[]> frameButtonsLists;
     private ArrayList<PhysicMemoryBean> physicMemoryBeans;
     private ArrayList<Worker> workers;
+    private ArrayList<StringProperty[]> frameStringProperties;
+
+    private StringProperty[] ctxStringProperty;
+
 
     private final int FRAME_NUM = 4;
     private RandomCodeGenerator rcg;
@@ -87,10 +105,10 @@ public class OSMainController implements Initializable{
 
     private void initializeInnerGlobal() {
         rcg = new RandomCodeGenerator(320);
-        frameButtonsLists = new ArrayList<>();
+//        ctxStringProperty = new StringProperty[FRAME_NUM];
         physicMemoryBeans = new ArrayList<>();
         workers = new ArrayList<>();
-
+        frameStringProperties = new ArrayList<>();
     }
 
     @FXML
@@ -125,10 +143,12 @@ public class OSMainController implements Initializable{
             workers.add(wp_pair.getKey());
             PhysicMemoryBean pmb = new PhysicMemoryBean(wp_pair.getValue());
             physicMemoryBeans.add(pmb);
-            Button[] buttons = new Button[FRAME_NUM];
+            StringProperty[] strings = new StringProperty[FRAME_NUM];
+//            Button[] buttons = new Button[FRAME_NUM];
             for (int i = 0; i < FRAME_NUM; i++) {
-                buttons[i] = new Button();
-                buttons[i].setText("None");
+                strings[i] = new SimpleStringProperty("None");
+//                buttons[i] = new Button();
+//                buttons[i].setText("None");
             }
             // set interact with pmb
             for (int i = 0; i < FRAME_NUM; i++) {
@@ -141,16 +161,41 @@ public class OSMainController implements Initializable{
                     } else {
                         // 不安全
 //                        buttons[i].setText(newValue.toString());
-                        buttons[index].setText(newValue.toString());
+                        strings[index].setValue(newValue.toString());
                     }
                 }));
             }
+            frameStringProperties.add(strings);
 
-            frameButtonsLists.add(buttons);
         }
 
 
         //binding
+        // 最初的表现层, 绑定在序号0
+        ctxStringProperty = frameStringProperties.get(0);
 
+        for (int i = 0; i < FRAME_NUM; i++) {
+            shownFrames.get(i).textProperty().bindBidirectional(ctxStringProperty[i]);
+        }
+
+        radioGroup.selectToggle(toggle1);
+        // table view
+        // https://docs.oracle.com/javafx/2/fxml_get_started/fxml_tutorial_intermediate.htm
+        radioGroup.selectedToggleProperty().addListener((observable, oldValue, newValue) -> {
+            if (radioGroup.getSelectedToggle() != null) {
+                for (int i = 0; i < FRAME_NUM; i++) {
+                    shownFrames.get(i).textProperty().unbindBidirectional(ctxStringProperty[i]);
+                }
+                if (radioGroup.getSelectedToggle().equals(toggle1)) {
+                    ctxStringProperty = frameStringProperties.get(0);
+
+                } else if (radioGroup.getSelectedToggle().equals(toggle2)) {
+                    ctxStringProperty = frameStringProperties.get(1);
+                }
+                for (int i = 0; i < FRAME_NUM; i++) {
+                    shownFrames.get(i).textProperty().bindBidirectional(ctxStringProperty[i]);
+                }
+            }
+        });
     }
 }
