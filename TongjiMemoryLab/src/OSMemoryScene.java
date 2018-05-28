@@ -14,15 +14,20 @@ public class OSMemoryScene extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        Parent root;
+
         try {
-            root = FXMLLoader.load(getClass().getResource("OSMemoryScene.fxml"));
+            Parent root = FXMLLoader.load(getClass().getResource("views/OSMemoryScene.fxml"));
+            primaryStage.setTitle("Hello World");
+            Scene scene = new Scene(root, 300, 275);
+            scene.getStylesheets().add(getClass().getResource("css/OSMemoryMain.css").toExternalForm());
+
+            primaryStage.setScene(scene);
+            primaryStage.show();
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        primaryStage.setTitle("Hello World");
-        primaryStage.setScene(new Scene(root, 300, 275));
-        primaryStage.show();
+
     }
 }

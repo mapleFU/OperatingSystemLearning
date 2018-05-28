@@ -3,11 +3,15 @@ package Memory;
 import Memory.EvictAlgorithm.EvictBase;
 import Memory.EvictAlgorithm.FIFOEvict;
 import Memory.EvictAlgorithm.LRUEvict;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.DoubleBinding;
+import javafx.beans.property.*;
 import javafx.util.Pair;
 
+import java.util.concurrent.Callable;
+
 public class PhysicsMemory {
+
     public int getPhysicsMemorySize() {
         return physicsMemorySize;
     }
@@ -16,6 +20,18 @@ public class PhysicsMemory {
     private Frame[] frames;
     private HardDiskMemory hardDiskMemory;
 
+    public float getPageFaultRate() {
+        return pageFaultRate.get();
+    }
+
+    public FloatProperty pageFaultRateProperty() {
+        return pageFaultRate;
+    }
+
+    private FloatProperty pageFaultRate;
+    private IntegerProperty requestPages;
+    // 这个试试看0。0
+    private FloatProperty faultNumbers;
     /**
      * 便于添加属性
      * @return
@@ -39,7 +55,7 @@ public class PhysicsMemory {
         frames = new Frame[physicsMemorySize];
         frameProperties = new IntegerProperty[physicsMemorySize];
         for (int i = 0; i < physicsMemorySize; i++) {
-            frameProperties[i] = new SimpleIntegerProperty();
+            frameProperties[i] = new SimpleIntegerProperty(-1);
         }
 
         this.hardDiskMemory = hardDiskMemory;
@@ -50,6 +66,18 @@ public class PhysicsMemory {
         this.evictor = evictAlgorithm;
         // init page fault count
         this.pageFaultCount = 0;
+
+        // set property for the page
+        requestPages = new SimpleIntegerProperty(1);
+
+        faultNumbers = new SimpleFloatProperty(0);
+        pageFaultRate = new SimpleFloatProperty(0);
+
+//        pageFaultRate.bind(Bindings.divide(faultNumbers, requestPages));
+
+        pageFaultRate.bind(
+                Bindings.divide(faultNumbers, requestPages)
+        );
     }
 
     private int spareSpace; // 空闲的空间
@@ -63,7 +91,6 @@ public class PhysicsMemory {
     }
 
     private void useCode(int frameID) {
-        if (!changed) changed = true;
         evictor.codeUse(frameID);
     }
 
@@ -74,8 +101,14 @@ public class PhysicsMemory {
 
     Pair<Integer, Integer> loadToPhysicsMemory(PageTableEntry pte) {
         // 切换成改变了
-        changed = true;
-
+        if (!changed) {
+            changed = true;
+        } else {
+            requestPages.setValue(requestPages.getValue() + 1);
+            System.out.println(requestPages.getValue());
+            System.out.println(faultNumbers.getValue());
+            System.out.println(pageFaultRate.get());
+        }
         int bios = pte.getBiosValue();
         Frame retFrame = null;
         int newPosition = -1;
@@ -103,6 +136,8 @@ public class PhysicsMemory {
             frameProperties[evictPos].set(frames[evictPos].getFrameID());
             retFrame = frames[evictPos];
             ++pageFaultCount;
+            // TODO:这个没有定义原子自增么...
+            faultNumbers.setValue(faultNumbers.intValue() + 1);
             newPosition = evictPos;
             useCode(evictPos);
         }
@@ -140,6 +175,7 @@ public class PhysicsMemory {
      *  if unchange -- null
      *  else -- return getPageNumbersInPhysicMemory()
      */
+    @Deprecated
     public int[] getChangedPageNumbersInPhysicsMemory() {
         if (!changed) {
             return null;

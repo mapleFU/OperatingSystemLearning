@@ -1,16 +1,18 @@
+package views;
+
 import Generator.RandomCodeGenerator;
 import Memory.EvictAlgorithm.EvictBase;
 import Memory.EvictAlgorithm.FIFOEvict;
 import Memory.EvictAlgorithm.LRUEvict;
 import Memory.PhysicsMemory;
 import Memory.Worker;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.*;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
 import javafx.util.Pair;
 import models.PhysicMemoryBean;
@@ -20,6 +22,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ResourceBundle;
 
+/**
+ * 主要的控制器
+ * 注意，只有页面上有的才可以...
+ */
 public class OSMainController implements Initializable{
     // it should be public
     public static class ShownCode {
@@ -75,6 +81,14 @@ public class OSMainController implements Initializable{
     @FXML
     private Button excuteAll;
 
+    @FXML
+    private Button comboExecute;
+
+    @FXML
+    private Button executeAll;
+
+    @FXML
+    private Button pageFaultShown;
     /**
      * 唯一的表示指令--PFN映射的表
      */
@@ -83,6 +97,7 @@ public class OSMainController implements Initializable{
 
     /**
      * 展示的FRAME序号
+     * TODO: 修改0 不会修改FRAME的问题
      */
     @FXML
     private ArrayList<Button> shownFrames;
@@ -95,6 +110,8 @@ public class OSMainController implements Initializable{
     private ArrayList<PhysicMemoryBean> physicMemoryBeans;
     private ArrayList<Worker> workers;
     private ArrayList<StringProperty[]> frameStringProperties;
+    private ArrayList<FloatProperty> pageFaultRates;
+    private ArrayList<ObservableList<PieChart.Data>> datalist;
 
     private StringProperty[] ctxStringProperty;
 
@@ -109,46 +126,46 @@ public class OSMainController implements Initializable{
         physicMemoryBeans = new ArrayList<>();
         workers = new ArrayList<>();
         frameStringProperties = new ArrayList<>();
-    }
-
-    @FXML
-    private void executeCode() {
-        // 凡是执行都要修改对应的TBV
-        if (rcg.hasNext()) {
-            Iterator<Worker> workerIterator = workers.iterator();
-            int code = rcg.next();
-            while (workerIterator.hasNext()) {
-                workerIterator.next().executeCode(code);
-            }
-            // 添加对应的shown code.
-            tableView.getItems().add(new ShownCode(code));
-        }
+        pageFaultRates = new ArrayList<>();
+        datalist = new ArrayList<>();
     }
 
     /**
-     * initialize 一般用于bind
-     * @param location
-     * @param resources
+     * initialize inner functions after init globals
      */
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        initializeInnerGlobal();
+    private void initializeAfterInnerGlobal() {
         EvictBase[] evictBases = new EvictBase[2];
         evictBases[0] = new LRUEvict(FRAME_NUM);
         evictBases[1] = new FIFOEvict(FRAME_NUM);
 
+        tableView.getItems().clear();
+        // init frame
         for (EvictBase evb:
-             evictBases) {
-            Pair<Worker, PhysicsMemory> wp_pair = main.generateWorker(evb);
+                evictBases) {
+
+//            datalist.add();
+
+            Pair<Worker, PhysicsMemory> wp_pair = Worker.generateWorker(evb);
             workers.add(wp_pair.getKey());
             PhysicMemoryBean pmb = new PhysicMemoryBean(wp_pair.getValue());
             physicMemoryBeans.add(pmb);
+            pageFaultRates.add(pmb.pageFaultRateProperty());
+
+            PieChart.Data fault = new PieChart.Data("Fault", 0);
+            fault.pieValueProperty().bindBidirectional(pmb.pageFaultRateProperty());
+            PieChart.Data unfault = new PieChart.Data("Unfault", 0);
+            unfault.pieValueProperty().bind(Bindings.subtract(1, pmb.pageFaultRateProperty()));
+
+            ObservableList<PieChart.Data> observableList = FXCollections.observableArrayList(
+                    fault,
+                    unfault
+            );
+            datalist.add(observableList);
+
             StringProperty[] strings = new StringProperty[FRAME_NUM];
 //            Button[] buttons = new Button[FRAME_NUM];
             for (int i = 0; i < FRAME_NUM; i++) {
                 strings[i] = new SimpleStringProperty("None");
-//                buttons[i] = new Button();
-//                buttons[i].setText("None");
             }
             // set interact with pmb
             for (int i = 0; i < FRAME_NUM; i++) {
@@ -173,6 +190,9 @@ public class OSMainController implements Initializable{
         //binding
         // 最初的表现层, 绑定在序号0
         ctxStringProperty = frameStringProperties.get(0);
+//        fxPageFaultChart.setData(datalist.get(0));
+        fxPageFaultChart.setData(datalist.get(0));
+        pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(0)));
 
         for (int i = 0; i < FRAME_NUM; i++) {
             shownFrames.get(i).textProperty().bindBidirectional(ctxStringProperty[i]);
@@ -186,16 +206,77 @@ public class OSMainController implements Initializable{
                 for (int i = 0; i < FRAME_NUM; i++) {
                     shownFrames.get(i).textProperty().unbindBidirectional(ctxStringProperty[i]);
                 }
+                pageFaultShown.textProperty().unbind();
                 if (radioGroup.getSelectedToggle().equals(toggle1)) {
                     ctxStringProperty = frameStringProperties.get(0);
+                    pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(0)));
 
                 } else if (radioGroup.getSelectedToggle().equals(toggle2)) {
                     ctxStringProperty = frameStringProperties.get(1);
+                    pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(1)));
                 }
                 for (int i = 0; i < FRAME_NUM; i++) {
                     shownFrames.get(i).textProperty().bindBidirectional(ctxStringProperty[i]);
                 }
             }
         });
+    }
+
+    @FXML
+    private void executeCode() {
+        // 凡是执行都要修改对应的TBV
+        if (rcg.hasNext()) {
+            Iterator<Worker> workerIterator = workers.iterator();
+            int code = rcg.next();
+            while (workerIterator.hasNext()) {
+                workerIterator.next().executeCode(code);
+            }
+            // 添加对应的shown code.
+            tableView.getItems().add(new ShownCode(code));
+        }
+    }
+
+    @FXML
+    private void executeFive() {
+        for (int i = 0; i < 5 && rcg.hasNext(); i++) {
+            executeCode();
+        }
+    }
+
+    @FXML
+    private void executeAll() {
+        while (rcg.hasNext()) {
+            executeCode();
+        }
+    }
+
+    /**
+     * 表示缺页的Chart
+     */
+    @FXML
+    private PieChart fxPageFaultChart;
+
+    @FXML
+    private Button restartButton;
+    /**
+     * 重新启动程序以便于多次测试
+     */
+    @FXML
+    private void Restart() {
+         initializeInnerGlobal();
+         initializeAfterInnerGlobal();
+
+    }
+
+
+    /**
+     * initialize 一般用于bind
+     * @param location
+     * @param resources
+     */
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        initializeInnerGlobal();
+        initializeAfterInnerGlobal();
     }
 }

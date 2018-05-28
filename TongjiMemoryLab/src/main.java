@@ -10,6 +10,7 @@ import javafx.util.Pair;
 
 import java.util.Iterator;
 
+@Deprecated
 public class main {
     public static Pair<Worker, PhysicsMemory> generateWorker(EvictBase evictAlgo) {
         // 存储的硬件
