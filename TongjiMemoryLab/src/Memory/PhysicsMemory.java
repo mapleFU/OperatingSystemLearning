@@ -7,6 +7,9 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.*;
 import javafx.util.Pair;
 
+/**
+ * 用来表示物理内存的类。这里能够存储对应的物理页面，并且能够将页面逐出，放入HardDiskMemory, 也能导入物理Frame。
+ */
 public class PhysicsMemory {
 
     public int getPhysicsMemorySize() {
@@ -17,6 +20,11 @@ public class PhysicsMemory {
     private Frame[] frames;
     private HardDiskMemory hardDiskMemory;
 
+    /**
+     * 返回对应的物理内存出现的缺页率
+     *
+     * @return 缺页率对应的属性
+     */
     public FloatProperty pageFaultRateProperty() {
         return pageFaultRate;
     }
@@ -25,9 +33,10 @@ public class PhysicsMemory {
     private IntegerProperty requestPages;
     // 这个试试看0。0
     private FloatProperty faultNumbers;
+
     /**
      * 便于添加属性
-     * @return
+     * @return 属性对应的数组
      */
     public IntegerProperty[] getFrameProperties() {
         return frameProperties;
@@ -84,9 +93,21 @@ public class PhysicsMemory {
     }
 
     private void useCode(int frameID) {
+        // 切换成改变了
+        if (!changed) {
+            changed = true;
+        } else {
+            requestPages.setValue(requestPages.getValue() + 1);
+        }
         evictor.codeUse(frameID);
     }
 
+    /**
+     * 根据在物理内存上的位置(PFN)获得物理内存的页
+     *
+     * @param frameID 物理内存上的位置(PFN)
+     * @return 对应的页面
+     */
     Frame getPhysicFrame(int frameID) {
         useCode(frameID);
         return frames[frameID];
@@ -98,13 +119,6 @@ public class PhysicsMemory {
      * @return
      */
     Pair<Integer, Integer> loadToPhysicsMemory(PageTableEntry pte) {
-        // 切换成改变了
-        if (!changed) {
-            changed = true;
-        } else {
-            requestPages.setValue(requestPages.getValue() + 1);
-        }
-
         int bios = pte.getBiosValue();
 
         int newPosition = -1;
@@ -146,6 +160,9 @@ public class PhysicsMemory {
         return new Pair<>(newPosition, oldFrameId);
     }
 
+    /**
+     * @return 缺页次数
+     */
     public int getPageFaultCount() {
         return pageFaultCount;
     }

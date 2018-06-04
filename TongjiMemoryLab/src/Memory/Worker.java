@@ -7,6 +7,9 @@ import Memory.VirtualMemory;
 import javafx.beans.property.StringProperty;
 import javafx.util.Pair;
 
+/**
+ * 执行代码的类，能够执行代码，并且分析执行代码产生的缺页率等信息。
+ */
 public class Worker {
 
 
@@ -28,6 +31,12 @@ public class Worker {
         this.virtualMemory = virtualMemory;
     }
 
+    /**
+     * 模拟执行代码，并产生相应的信息
+     *
+     * @param codeID 虚拟内存的VPN
+     * @return 执行代码产生的信息。
+     */
     public String executeCode(int codeID) {
         Code code = virtualMemory.getCode(codeID);
         // 具体处理指令

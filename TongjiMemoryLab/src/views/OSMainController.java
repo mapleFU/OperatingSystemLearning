@@ -1,5 +1,6 @@
 package views;
 
+import Generator.RCodeGenerator;
 import Generator.RandomCodeGenerator;
 import Memory.EvictAlgorithm.EvictBase;
 import Memory.EvictAlgorithm.FIFOEvict;
@@ -7,12 +8,14 @@ import Memory.EvictAlgorithm.LRUEvict;
 import Memory.EvictAlgorithm.RandEvict;
 import Memory.PhysicsMemory;
 import Memory.Worker;
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
 import javafx.util.Pair;
@@ -22,6 +25,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 主要的控制器
@@ -83,9 +88,6 @@ public class OSMainController implements Initializable{
     private Button executeNext;
 
     @FXML
-    private Button excuteAll;
-
-    @FXML
     private Button comboExecute;
 
     @FXML
@@ -108,6 +110,77 @@ public class OSMainController implements Initializable{
 
 
     /**
+     * 需要操作的BUTTONS
+     */
+    private ArrayList<Button> operationButtons;
+    /**
+     * 对应的RADIO GROUP
+     */
+    private ToggleGroup toggleGroup;
+    /**
+     * 一个初始化为0的判断是否DISABLE的按钮
+     */
+    private static int fxmlDisabled;
+    private static ReentrantLock rlock;
+
+    static {
+        fxmlDisabled = -1;
+        rlock = new ReentrantLock();
+    }
+
+    private void initButtonSwitchLock()
+    {
+        operationButtons = new ArrayList<>();
+        operationButtons.add(executeAll);
+        operationButtons.add(restartButton);
+        operationButtons.add(comboExecute);
+        operationButtons.add(executeNext);
+        toggleGroup = radioGroup;
+
+    }
+
+    /**
+     * 开始操作，DISABLE掉别的按钮
+     */
+    private void startExecution() {
+        rlock.lock();
+        if(fxmlDisabled == -1) {
+            for (Button b:
+                    operationButtons) {
+                b.setDisable(true);
+            }
+            toggleGroup.getToggles().forEach(toggle -> {
+                Node node = (Node) toggle ;
+                node.setDisable(true);
+            });
+            System.out.println("start execution");
+        }
+        ++fxmlDisabled;
+        rlock.unlock();
+
+    }
+
+    /**
+     * 结束操作，
+     */
+    private void endExecution() {
+        rlock.lock();
+        if (fxmlDisabled == 0) {
+            System.out.println("end execution");
+            for (Button b:
+                    operationButtons) {
+                b.setDisable(false);
+            }
+            toggleGroup.getToggles().forEach(toggle -> {
+                Node node = (Node) toggle ;
+                node.setDisable(false);
+            });
+        }
+        fxmlDisabled--;
+        rlock.unlock();
+    }
+
+    /**
      * 各个算法的frameList
      * 以及对应的上下文
      */
@@ -121,11 +194,13 @@ public class OSMainController implements Initializable{
 
 
     private final int FRAME_NUM = 4;
-    private RandomCodeGenerator rcg;
+//    private RandomCodeGenerator rcg;
+    private RCodeGenerator rcg;
 
 
     private void initializeInnerGlobal() {
-        rcg = new RandomCodeGenerator(320);
+        rcg = new RCodeGenerator(320);
+//        rcg = new RandomCodeGenerator(320);
 //        ctxStringProperty = new StringProperty[FRAME_NUM];
         physicMemoryBeans = new ArrayList<>();
         workers = new ArrayList<>();
@@ -206,6 +281,8 @@ public class OSMainController implements Initializable{
         // table view
         // https://docs.oracle.com/javafx/2/fxml_get_started/fxml_tutorial_intermediate.htm
         radioGroup.selectedToggleProperty().addListener((observable, oldValue, newValue) -> {
+            startExecution();
+//            Platform.setImplicitExit(false);
             if (radioGroup.getSelectedToggle() != null) {
                 // Property unbind
                 for (int i = 0; i < FRAME_NUM; i++) {
@@ -232,6 +309,7 @@ public class OSMainController implements Initializable{
                     shownFrames.get(i).textProperty().bindBidirectional(ctxStringProperty[i]);
                 }
             }
+            endExecution();
         });
     }
 
@@ -239,44 +317,42 @@ public class OSMainController implements Initializable{
     @FXML
     private void executeCode() {
         // 凡是执行都要修改对应的TBV
-        int cnt = 0;
+        startExecution();
         if (rcg.hasNext()) {
+
             Iterator<Worker> workerIterator = workers.iterator();
             int code = rcg.next();
             while (workerIterator.hasNext()) {
                 workerIterator.next().executeCode(code);
-//                String s = workerIterator.next().executeCode(code);
-//                if (executedResults.size() < 3)
-//                    executedResults.add(s);
-//                else
-//                    executedResults.set(cnt++, s);
             }
+
+
+
             // 添加对应的shown code.
             tableView.getItems().add(new ShownCode(code));
         }
-//        String s = executedResults.get(0);
-//        for (int i = 1; i < 3; i++) {
-//            if (!executedResults.get(i).equals(s)) {
-//                System.out.println("Not equal!");
-//            }
-        }
+        endExecution();
     }
 
     @FXML
     private void executeFive() {
+        startExecution();
         for (int i = 0; i < 5 && rcg.hasNext(); i++) {
             executeCode();
         }
+        endExecution();
     }
 
     @FXML
     private void executeAll() {
+        startExecution();
         int cnt = 0;
         while (rcg.hasNext()) {
             ++cnt;
             executeCode();
         }
         System.out.println("共执行了 " + cnt + "条指令" + "，命中等如下： "+fxPageFaultChart.dataProperty().get());
+        endExecution();
     }
 
     /**
@@ -292,9 +368,10 @@ public class OSMainController implements Initializable{
      */
     @FXML
     private void Restart() {
+         startExecution();
          initializeInnerGlobal();
          initializeAfterInnerGlobal();
-
+         endExecution();
     }
 
 
@@ -307,5 +384,7 @@ public class OSMainController implements Initializable{
     public void initialize(URL location, ResourceBundle resources) {
         initializeInnerGlobal();
         initializeAfterInnerGlobal();
+        initButtonSwitchLock();
+
     }
 }

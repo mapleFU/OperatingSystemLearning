@@ -1,5 +1,8 @@
 package Memory;
 
+/**
+ * 虚拟内存，通过MMUTranslator在物理内存寻址。用户通过worker操作虚拟内存来查找对应的指令。
+ */
 public class VirtualMemory {
     // 物理内存
     private PhysicsMemory physicsMemory;
@@ -13,6 +16,12 @@ public class VirtualMemory {
         mmuTranslator = new MMUTranslator(this, physicsMemory);
     }
 
+    /**
+     * 虚拟内存的指令位置(Virtual Page Number)来查找对应的指令。
+     *
+     * @param codeNum
+     * @return 寻址到的CODE
+     */
     public Code getCode(int codeNum) {
         // 这一步相对来说应该是直接get pte?
         Frame frame;
@@ -29,6 +38,9 @@ public class VirtualMemory {
         return codeNum % 10;
     }
 
+    /**
+     * @return 虚拟内存的容量
+     */
     public int getVirtualSize() {
         return virtualSize;
     }

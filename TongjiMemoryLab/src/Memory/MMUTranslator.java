@@ -5,6 +5,9 @@ import javafx.util.Pair;
 
 /**
  * MMU 转换器，能够将虚拟地址转换成物理空间的地址
+ *
+ * MMU 转换器，能够将虚拟地址转换成物理空间的地址。调用PageTable 和TLB来实现目标。
+ * 这个模块的Translator能够处理异常，并且加载对应的PTE的物理页。
  */
 public class MMUTranslator {
     // 去除
