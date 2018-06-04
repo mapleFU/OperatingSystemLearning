@@ -4,6 +4,7 @@ import Generator.RandomCodeGenerator;
 import Memory.EvictAlgorithm.EvictBase;
 import Memory.EvictAlgorithm.FIFOEvict;
 import Memory.EvictAlgorithm.LRUEvict;
+import Memory.EvictAlgorithm.RandEvict;
 import Memory.PhysicsMemory;
 import Memory.Worker;
 import javafx.beans.binding.Bindings;
@@ -76,6 +77,9 @@ public class OSMainController implements Initializable{
     private Toggle toggle2;
 
     @FXML
+    private Toggle toggle3;
+
+    @FXML
     private Button executeNext;
 
     @FXML
@@ -134,9 +138,10 @@ public class OSMainController implements Initializable{
      * initialize inner functions after init globals
      */
     private void initializeAfterInnerGlobal() {
-        EvictBase[] evictBases = new EvictBase[2];
+        EvictBase[] evictBases = new EvictBase[3];
         evictBases[0] = new LRUEvict(FRAME_NUM);
         evictBases[1] = new FIFOEvict(FRAME_NUM);
+        evictBases[2] = new RandEvict(FRAME_NUM);
 
         tableView.getItems().clear();
         // init frame
@@ -190,7 +195,6 @@ public class OSMainController implements Initializable{
         //binding
         // 最初的表现层, 绑定在序号0
         ctxStringProperty = frameStringProperties.get(0);
-//        fxPageFaultChart.setData(datalist.get(0));
         fxPageFaultChart.setData(datalist.get(0));
         pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(0)));
 
@@ -203,18 +207,27 @@ public class OSMainController implements Initializable{
         // https://docs.oracle.com/javafx/2/fxml_get_started/fxml_tutorial_intermediate.htm
         radioGroup.selectedToggleProperty().addListener((observable, oldValue, newValue) -> {
             if (radioGroup.getSelectedToggle() != null) {
+                // Property unbind
                 for (int i = 0; i < FRAME_NUM; i++) {
                     shownFrames.get(i).textProperty().unbindBidirectional(ctxStringProperty[i]);
                 }
                 pageFaultShown.textProperty().unbind();
+
+
                 if (radioGroup.getSelectedToggle().equals(toggle1)) {
                     ctxStringProperty = frameStringProperties.get(0);
                     pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(0)));
-
+                    fxPageFaultChart.setData(datalist.get(0));
                 } else if (radioGroup.getSelectedToggle().equals(toggle2)) {
                     ctxStringProperty = frameStringProperties.get(1);
                     pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(1)));
+                    fxPageFaultChart.setData(datalist.get(1));
+                } else if (radioGroup.getSelectedToggle().equals(toggle3)) {
+                    ctxStringProperty = frameStringProperties.get(2);
+                    pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(2)));
+                    fxPageFaultChart.setData(datalist.get(2));
                 }
+
                 for (int i = 0; i < FRAME_NUM; i++) {
                     shownFrames.get(i).textProperty().bindBidirectional(ctxStringProperty[i]);
                 }
@@ -222,17 +235,30 @@ public class OSMainController implements Initializable{
         });
     }
 
+
     @FXML
     private void executeCode() {
         // 凡是执行都要修改对应的TBV
+        int cnt = 0;
         if (rcg.hasNext()) {
             Iterator<Worker> workerIterator = workers.iterator();
             int code = rcg.next();
             while (workerIterator.hasNext()) {
                 workerIterator.next().executeCode(code);
+//                String s = workerIterator.next().executeCode(code);
+//                if (executedResults.size() < 3)
+//                    executedResults.add(s);
+//                else
+//                    executedResults.set(cnt++, s);
             }
             // 添加对应的shown code.
             tableView.getItems().add(new ShownCode(code));
+        }
+//        String s = executedResults.get(0);
+//        for (int i = 1; i < 3; i++) {
+//            if (!executedResults.get(i).equals(s)) {
+//                System.out.println("Not equal!");
+//            }
         }
     }
 
@@ -245,9 +271,12 @@ public class OSMainController implements Initializable{
 
     @FXML
     private void executeAll() {
+        int cnt = 0;
         while (rcg.hasNext()) {
+            ++cnt;
             executeCode();
         }
+        System.out.println("共执行了 " + cnt + "条指令" + "，命中等如下： "+fxPageFaultChart.dataProperty().get());
     }
 
     /**

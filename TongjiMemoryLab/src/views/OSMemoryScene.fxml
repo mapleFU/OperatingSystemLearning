@@ -67,10 +67,11 @@
 
         <RadioButton text="LRU" fx:id="toggle1" toggleGroup="$radioGroup" GridPane.columnIndex="0" GridPane.rowIndex="5"/>
         <RadioButton text="FIFO" fx:id="toggle2" toggleGroup="$radioGroup" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+        <RadioButton text="Rand" fx:id="toggle3" toggleGroup="$radioGroup" GridPane.columnIndex="2" GridPane.rowIndex="5" />
 
-        <Button text="重新启动" fx:id="restartButton" onAction="#Restart" GridPane.rowIndex="7" />
+        <Button text="重新启动" fx:id="restartButton" onAction="#Restart" GridPane.rowIndex="7" GridPane.columnSpan="3"/>
 
-        <Button fx:id="pageFaultShown" GridPane.rowIndex="9"/>
+        <Button fx:id="pageFaultShown" GridPane.rowIndex="9" GridPane.columnSpan="3"/>
         <PieChart fx:id="fxPageFaultChart" GridPane.columnSpan="4" GridPane.rowIndex="8"/>
     </children>
 </GridPane>

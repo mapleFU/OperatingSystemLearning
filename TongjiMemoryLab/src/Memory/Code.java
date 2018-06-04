@@ -1,5 +1,8 @@
 package Memory;
 
+/**
+ * 表示抽象的代码
+ */
 class Code {
     private final int codeID;
 

@@ -27,9 +27,27 @@ public class PageTable {
         }
     }
 
-    void setPTEProtectbitsFalse(int virtualAdd) {
+    /**
+     * 将对应方法的保护位设置为真
+     * @param virtualAdd 虚拟的底子
+     */
+    void setPTEProtectbitsTrue(int virtualAdd) {
         PageTableEntry pte = PTEArray[virtualAdd];
         if (!pte.getProtectbits()) {
+            pte.setProtectbits(true);
+        }
+    }
+
+    /**
+     * 将对应方法的保护位设置为假
+     * @param virtualAdd
+     */
+    void setPTEProtectbitsFalse(int virtualAdd) {
+        PageTableEntry pte = PTEArray[virtualAdd];
+//        if (!pte.getProtectbits()) {
+//            pte.setProtectbits(false);
+//        }
+        if (pte.getProtectbits()) {
             pte.setProtectbits(false);
         }
     }
@@ -37,7 +55,7 @@ public class PageTable {
 
 class PageFaultException extends Exception
 {
-    // 缺页的PTE
+    // 不在物理内存中的缺页的PTE，需要被载入物理内存
     PageTableEntry pageTableEntry;
     PageFaultException(PageTableEntry pageTableEntry)
     {

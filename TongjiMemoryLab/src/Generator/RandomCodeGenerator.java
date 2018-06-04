@@ -15,14 +15,10 @@ public class RandomCodeGenerator implements Iterator<Integer> {
      */
     private final int codeNum;
     private final Random random;
-    private final int MIN_SPLIT = 5;
-    private final int MIN_CHOOSE = 7;
+    private final int MIN_SPLIT = 30;
+    private final int MIN_CHOOSE = 25;
 
-    LinkedList<Pair<Integer, Integer>> freeList;
-
-    private void showFreeList() {
-        System.out.println(freeList);
-    }
+    private LinkedList<Pair<Integer, Integer>> freeList;
 
     public RandomCodeGenerator(int codeNumber) {
         codeNum = codeNumber;
@@ -53,21 +49,26 @@ public class RandomCodeGenerator implements Iterator<Integer> {
             currentEnd = beg_end_pair.getValue();
         } else {
             currentBeg = random.nextInt(beg_end_pair.getValue() - beg_end_pair.getKey()) + beg_end_pair.getKey();
-            if (currentBeg + MIN_CHOOSE >= beg_end_pair.getValue()) {
+            int thisChoose = random.nextInt(MIN_CHOOSE);
+            if (currentBeg + thisChoose >= beg_end_pair.getValue()) {
                 // 越过边界，只需要插入一段数据
                 currentEnd = beg_end_pair.getValue();
             } else {
                 // 没有越过边界，需要插入两段数据
-                currentEnd = currentBeg + MIN_CHOOSE;
+                currentEnd = currentBeg + thisChoose;
             }
         }
 
+        int currentLength = currentEnd - currentBeg;
+        if (currentLength == 0) {
+            currentLength = 1;
+        }
         // split linked list
         freeList.remove(nodeN);
         if (currentBeg > beg_end_pair.getKey())
-            freeList.add(nodeN++, new Pair<>(beg_end_pair.getKey(), currentBeg));
+            freeList.add(nodeN++, new Pair<>(beg_end_pair.getKey(), currentBeg + random.nextInt(currentLength)));
         if (currentEnd < beg_end_pair.getValue())
-            freeList.add(nodeN, new Pair<>(currentEnd, beg_end_pair.getValue()));
+            freeList.add(nodeN, new Pair<>(currentEnd - random.nextInt(currentLength), beg_end_pair.getValue()));
         currentCursor = currentBeg;
         return true;
     }

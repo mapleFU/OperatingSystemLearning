@@ -8,26 +8,7 @@ public class Frame {
     private static final int MEMORY_SIZE = 10;
     private int begin;
 
-    boolean isInPhysicsMemory() {
-        return inPhysicsMemory;
-    }
-
-    void getInPhysicsMemory() {
-        inPhysicsMemory = true;
-    }
-
-    void getOutPhysicsMemory() { inPhysicsMemory = false; }
-
-    private void setInPhysicsMemory(boolean inPhysicsMemory) {
-        this.inPhysicsMemory = inPhysicsMemory;
-    }
-
-    // 是否在物理内存中
-    private boolean inPhysicsMemory;
-
     Memory.Code getCode(int bios) throws ArrayIndexOutOfBoundsException {
-        // 初始化为FALSE
-        inPhysicsMemory = false;
         if (bios < 0 || bios >= MEMORY_SIZE) {
             throw new ArrayIndexOutOfBoundsException("bios should >= 0 and <=" + MEMORY_SIZE);
         }

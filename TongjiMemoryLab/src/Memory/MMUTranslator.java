@@ -37,11 +37,17 @@ public class MMUTranslator {
         if (codePte == null) {
             throw new RuntimeException("codePTE is null!");
         }
-        return physicsMemory.getPhysicFrame(codePte.getPFN());
+        Frame f = physicsMemory.getPhysicFrame(codePte.getPFN());
+        // TODO: delete this after debug
+        if (f.getFrameID() != vpn) {
+            System.out.println("你的程序是一个傻逼程序");
+        }
+        return f;
     }
 
     private PageTableEntry handlePageFault(PageFaultException e) {
         // 处理PAGE FAULT
+        // to_move_pte 表示要写入物理内存的PTE
         PageTableEntry to_move_pte = e.pageTableEntry;
         // 加载到物理存储空间中, 并且返回frame
         Pair<Integer, Integer> valuePair = physicsMemory.loadToPhysicsMemory(to_move_pte);
@@ -52,6 +58,7 @@ public class MMUTranslator {
             // 设置旧值(被Evict的)的保护位为false
             pageTable.setPTEProtectbitsFalse(oldFrameID);
         }
+
         to_move_pte.setProtectbits(true);
         to_move_pte.setPFN(newFrameID);
         return to_move_pte;

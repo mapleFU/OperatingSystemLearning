@@ -16,7 +16,9 @@ public abstract class EvictBase {
         this.lruSize = lruSize;
     }
 
+    // 使用对应code
     public abstract void codeUse(int frameID);
+    // 排斥
     public abstract int evictID();
 
     @Override

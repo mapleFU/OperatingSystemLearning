@@ -4,11 +4,8 @@ import Memory.EvictAlgorithm.EvictBase;
 import Memory.EvictAlgorithm.FIFOEvict;
 import Memory.EvictAlgorithm.LRUEvict;
 import javafx.beans.binding.Bindings;
-import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.*;
 import javafx.util.Pair;
-
-import java.util.concurrent.Callable;
 
 public class PhysicsMemory {
 
@@ -19,10 +16,6 @@ public class PhysicsMemory {
     private final int physicsMemorySize;
     private Frame[] frames;
     private HardDiskMemory hardDiskMemory;
-
-    public float getPageFaultRate() {
-        return pageFaultRate.get();
-    }
 
     public FloatProperty pageFaultRateProperty() {
         return pageFaultRate;
@@ -99,20 +92,24 @@ public class PhysicsMemory {
         return frames[frameID];
     }
 
+    /**
+     * 将PTE载入物理内存，返回新旧位置
+     * @param pte 需要导入内存的PageTableEntity
+     * @return
+     */
     Pair<Integer, Integer> loadToPhysicsMemory(PageTableEntry pte) {
         // 切换成改变了
         if (!changed) {
             changed = true;
         } else {
             requestPages.setValue(requestPages.getValue() + 1);
-            System.out.println(requestPages.getValue());
-            System.out.println(faultNumbers.getValue());
-            System.out.println(pageFaultRate.get());
         }
+
         int bios = pte.getBiosValue();
-        Frame retFrame = null;
+
         int newPosition = -1;
         int evictPos = -1;
+        int oldFrameId = -1;
         System.out.println("Load " + pte + " in physics memory.");
         if (spareSpace != 0) {
             // 直接载入
@@ -121,7 +118,6 @@ public class PhysicsMemory {
                     useCode(i);
                     frames[i] = this.hardDiskMemory.releaseFrame(bios);
                     frameProperties[i].set(frames[i].getFrameID());
-                    retFrame = frames[i];
                     newPosition = i;
                     --spareSpace;
                     break;
@@ -131,21 +127,23 @@ public class PhysicsMemory {
             // 需要替换
             evictPos = evict();
             System.out.println("evict frame begin with " + frames[evictPos].getBegin() + " in physics memory by " + evictor);
+            oldFrameId = frames[evictPos].getFrameID();
             this.hardDiskMemory.addFrame(frames[evictPos]);
             frames[evictPos] = hardDiskMemory.releaseFrame(bios);
             frameProperties[evictPos].set(frames[evictPos].getFrameID());
-            retFrame = frames[evictPos];
             ++pageFaultCount;
             // TODO:这个没有定义原子自增么...
             faultNumbers.setValue(faultNumbers.intValue() + 1);
             newPosition = evictPos;
             useCode(evictPos);
         }
-//        return retFrame;
+
         if (newPosition == -1) {
             throw new RuntimeException("newPosition in loadToPhysicsMemory is -1.");
         }
-        return new Pair<>(newPosition, evictPos);
+
+        // (newPos, evictFrameID)
+        return new Pair<>(newPosition, oldFrameId);
     }
 
     public int getPageFaultCount() {

@@ -4,9 +4,11 @@ import Memory.Code;
 import Memory.EvictAlgorithm.EvictBase;
 import Memory.PageTable;
 import Memory.VirtualMemory;
+import javafx.beans.property.StringProperty;
 import javafx.util.Pair;
 
 public class Worker {
+
 
     public static Pair<Worker, PhysicsMemory> generateWorker(EvictBase evictAlgo) {
         // 存储的硬件
@@ -26,9 +28,11 @@ public class Worker {
         this.virtualMemory = virtualMemory;
     }
 
-    public void executeCode(int codeID) {
+    public String executeCode(int codeID) {
         Code code = virtualMemory.getCode(codeID);
         // 具体处理指令
-        System.out.println("Execute: " + code.toString());
+        String ret = "Execute: " + code.toString();
+        System.out.println(ret);
+        return ret;
     }
 }
