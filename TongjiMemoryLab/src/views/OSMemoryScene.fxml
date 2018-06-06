@@ -58,6 +58,12 @@
                         <PropertyValueFactory property="physicMemory" />
                     </cellValueFactory>
                 </TableColumn>
+
+                <TableColumn text="偏移量">
+                    <cellValueFactory>
+                        <PropertyValueFactory property="bios" />
+                    </cellValueFactory>
+                </TableColumn>
             </columns>
         </TableView>
 

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -49,6 +50,20 @@ public class OSMainController implements Initializable{
 
         private final IntegerProperty codenum;
 
+        public int getBios() {
+            return bios.get();
+        }
+
+        public IntegerProperty biosProperty() {
+            return bios;
+        }
+
+        public void setBios(int bios) {
+            this.bios.set(bios);
+        }
+
+        private final IntegerProperty bios;
+
         public int getPhysicMemory() {
             return physicMemory.get();
         }
@@ -66,8 +81,11 @@ public class OSMainController implements Initializable{
         private ShownCode(int coden) {
             codenum = new SimpleIntegerProperty(coden);
             physicMemory = new SimpleIntegerProperty(coden / 10);
+            bios = new SimpleIntegerProperty(coden % 10);
+
             codenum.addListener(((observable, oldValue, newValue) -> {
                 physicMemory.setValue(newValue.intValue() / 10);
+                bios.setValue(newValue.intValue() % 10);
             }));
         }
     }
@@ -122,10 +140,12 @@ public class OSMainController implements Initializable{
      */
     private static int fxmlDisabled;
     private static ReentrantLock rlock;
+    private static Lock fxmlDisabledLock;
 
     static {
         fxmlDisabled = -1;
         rlock = new ReentrantLock();
+        fxmlDisabledLock = new ReentrantLock();
     }
 
     private void initButtonSwitchLock()
@@ -143,20 +163,23 @@ public class OSMainController implements Initializable{
      * 开始操作，DISABLE掉别的按钮
      */
     private void startExecution() {
-        rlock.lock();
-        if(fxmlDisabled == -1) {
-            for (Button b:
-                    operationButtons) {
-                b.setDisable(true);
+
+        Platform.runLater(()->{
+            fxmlDisabledLock.lock();
+            if(fxmlDisabled == -1) {
+                for (Button b:
+                        operationButtons) {
+                    b.setDisable(true);
+                }
+                toggleGroup.getToggles().forEach(toggle -> {
+                    Node node = (Node) toggle ;
+                    node.setDisable(true);
+                });
+                System.out.println("start execution");
             }
-            toggleGroup.getToggles().forEach(toggle -> {
-                Node node = (Node) toggle ;
-                node.setDisable(true);
-            });
-            System.out.println("start execution");
-        }
-        ++fxmlDisabled;
-        rlock.unlock();
+            ++fxmlDisabled;
+            fxmlDisabledLock.unlock();
+        });
 
     }
 
@@ -164,20 +187,23 @@ public class OSMainController implements Initializable{
      * 结束操作，
      */
     private void endExecution() {
-        rlock.lock();
-        if (fxmlDisabled == 0) {
-            System.out.println("end execution");
-            for (Button b:
-                    operationButtons) {
-                b.setDisable(false);
+        Platform.runLater(()-> {
+            fxmlDisabledLock.lock();
+            if (fxmlDisabled == 0) {
+                System.out.println("end execution");
+                for (Button b:
+                        operationButtons) {
+                    b.setDisable(false);
+                }
+                toggleGroup.getToggles().forEach(toggle -> {
+                    Node node = (Node) toggle ;
+                    node.setDisable(false);
+                });
             }
-            toggleGroup.getToggles().forEach(toggle -> {
-                Node node = (Node) toggle ;
-                node.setDisable(false);
-            });
-        }
-        fxmlDisabled--;
-        rlock.unlock();
+            fxmlDisabled--;
+            fxmlDisabledLock.unlock();
+        });
+
     }
 
     /**
@@ -192,6 +218,7 @@ public class OSMainController implements Initializable{
 
     private StringProperty[] ctxStringProperty;
 
+    private ObservableList<PieChart.Data> piechartData;
 
     private final int FRAME_NUM = 4;
 //    private RandomCodeGenerator rcg;
@@ -200,18 +227,19 @@ public class OSMainController implements Initializable{
 
     private void initializeInnerGlobal() {
         rcg = new RCodeGenerator(320);
-//        rcg = new RandomCodeGenerator(320);
-//        ctxStringProperty = new StringProperty[FRAME_NUM];
         physicMemoryBeans = new ArrayList<>();
         workers = new ArrayList<>();
         frameStringProperties = new ArrayList<>();
         pageFaultRates = new ArrayList<>();
         datalist = new ArrayList<>();
+//        pageErrorDataList = new ArrayList<>();
     }
 
     /**
      * initialize inner functions after init globals
      */
+    private Lock updateRadioLock = new ReentrantLock();
+
     private void initializeAfterInnerGlobal() {
         EvictBase[] evictBases = new EvictBase[3];
         evictBases[0] = new LRUEvict(FRAME_NUM);
@@ -235,6 +263,8 @@ public class OSMainController implements Initializable{
             fault.pieValueProperty().bindBidirectional(pmb.pageFaultRateProperty());
             PieChart.Data unfault = new PieChart.Data("Unfault", 0);
             unfault.pieValueProperty().bind(Bindings.subtract(1, pmb.pageFaultRateProperty()));
+
+
 
             ObservableList<PieChart.Data> observableList = FXCollections.observableArrayList(
                     fault,
@@ -266,11 +296,12 @@ public class OSMainController implements Initializable{
 
         }
 
+        piechartData = datalist.get(0);
 
         //binding
         // 最初的表现层, 绑定在序号0
         ctxStringProperty = frameStringProperties.get(0);
-        fxPageFaultChart.setData(datalist.get(0));
+        fxPageFaultChart.setData(piechartData);
         pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(0)));
 
         for (int i = 0; i < FRAME_NUM; i++) {
@@ -278,39 +309,81 @@ public class OSMainController implements Initializable{
         }
 
         radioGroup.selectToggle(toggle1);
+
         // table view
         // https://docs.oracle.com/javafx/2/fxml_get_started/fxml_tutorial_intermediate.htm
+
         radioGroup.selectedToggleProperty().addListener((observable, oldValue, newValue) -> {
-            startExecution();
-//            Platform.setImplicitExit(false);
-            if (radioGroup.getSelectedToggle() != null) {
-                // Property unbind
-                for (int i = 0; i < FRAME_NUM; i++) {
-                    shownFrames.get(i).textProperty().unbindBidirectional(ctxStringProperty[i]);
-                }
-                pageFaultShown.textProperty().unbind();
+            Platform.runLater(()-> {
+                startExecution();
+
+                if (radioGroup.getSelectedToggle() != null) {
+                    // Property unbind
+
+                    for (int i = 0; i < FRAME_NUM; i++) {
+                        shownFrames.get(i).textProperty().unbindBidirectional(ctxStringProperty[i]);
+                    }
+                    pageFaultShown.textProperty().unbind();
+
+//                    fxPageFaultChart.setData(datalist.);
+
+                    // 如果不符合要求抛出异常
+                    int dataIndex = -1;
+
+                    if (newValue.equals(toggle1)) {
+                        dataIndex = 0;
+                    } else if (newValue.equals(toggle2)) {
+                        dataIndex = 1;
+                    } else if (newValue.equals(toggle3)) {
+                        dataIndex = 2;
+                    }
+                    updateRadioUI(dataIndex);
 
 
-                if (radioGroup.getSelectedToggle().equals(toggle1)) {
-                    ctxStringProperty = frameStringProperties.get(0);
-                    pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(0)));
-                    fxPageFaultChart.setData(datalist.get(0));
-                } else if (radioGroup.getSelectedToggle().equals(toggle2)) {
-                    ctxStringProperty = frameStringProperties.get(1);
-                    pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(1)));
-                    fxPageFaultChart.setData(datalist.get(1));
-                } else if (radioGroup.getSelectedToggle().equals(toggle3)) {
-                    ctxStringProperty = frameStringProperties.get(2);
-                    pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(2)));
-                    fxPageFaultChart.setData(datalist.get(2));
-                }
+                    for (int i = 0; i < FRAME_NUM; i++) {
+                        shownFrames.get(i).textProperty().bindBidirectional(ctxStringProperty[i]);
+                    }
 
-                for (int i = 0; i < FRAME_NUM; i++) {
-                    shownFrames.get(i).textProperty().bindBidirectional(ctxStringProperty[i]);
                 }
-            }
-            endExecution();
+                endExecution();
+            });
         });
+    }
+
+    private void updateRadioUI(int dataIndex) {
+//        rlock.lock();
+        try {
+            if (piechartData.retainAll(datalist.get(dataIndex))) {
+                if (piechartData == datalist.get(dataIndex)) {
+                    System.out.println("TT");
+                } else {
+                    System.out.println("T");
+                }
+            } else {
+                System.out.println("F");
+            }
+
+
+            PieChart.Data fault = new PieChart.Data("Fault", 0);
+            fault.pieValueProperty().bindBidirectional(pageFaultRates.get(dataIndex));
+            PieChart.Data unfault = new PieChart.Data("Unfault", 0);
+            unfault.pieValueProperty().bind(Bindings.subtract(1, pageFaultRates.get(dataIndex)));
+
+            ObservableList<PieChart.Data> observableList = FXCollections.observableArrayList(
+                    fault,
+                    unfault
+            );
+
+
+            piechartData.setAll(observableList);
+            ctxStringProperty = frameStringProperties.get(dataIndex);
+            pageFaultShown.textProperty().bind(Bindings.convert(pageFaultRates.get(dataIndex)));
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+            System.out.println("系统继续运行");
+            Platform.exit();
+        }
+//        rlock.unlock();
     }
 
 
