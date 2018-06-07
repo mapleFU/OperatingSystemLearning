@@ -4,7 +4,7 @@
 
 运行对应的.jar文件，可以看到如下的界面：
 
-![ui summary](./doc/readme_images/ui summary.png)
+![ui summary](../../Desktop/TongjiMemoryLab/doc/readme_images/ui_summary.png)
 
 我们可以看到下列的按钮：
 
@@ -26,19 +26,19 @@
 
 下面是模拟运行：
 
-![executed](./doc/readme_images/executed.png)
+![executed](../../Desktop/TongjiMemoryLab/doc/readme_images/executed.png)
 
 可以看到，缺页率、指令序号等对应显示在图中。如果需要对比多种算法，可以按对应算法的按钮，得到这个算法对应的数据。 以下是rand 算法和 FIFO算法对应的数据：
 
-![rand 算法](./doc/readme_images/rand 算法.png)
+![rand 算法](./doc/readme_images/rand_算法.png)
 
-![fifo 算法](./doc/readme_images/fifo 算法.png)
+![fifo 算法](./doc/readme_images/fifo_算法.png)
 
 当你执行完全部指令后，可以自行选择对应重启，燃尽诶面归零，重新启动程序。
 
 ## 模块和架构
 
-详细情况可以看文档中对应的[Javadoc](./doc/main.html)
+详细情况可以看文档中对应的[Javadoc](./doc/index.html)
 
 ### 内存模拟
 
