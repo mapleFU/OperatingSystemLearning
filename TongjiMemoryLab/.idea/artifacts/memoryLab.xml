@@ -1,0 +1,12 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="memoryLab">
+    <output-path>$PROJECT_DIR$/out/artifacts/memoryLab</output-path>
+    <root id="archive" name="memoryLab.jar">
+      <element id="library" level="project" name="com.jfoenix:jfoenix:8.0.4" />
+      <element id="module-output" name="TongjiMemoryLab" />
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/META-INF/MANIFEST.MF" />
+      </element>
+    </root>
+  </artifact>
+</component>

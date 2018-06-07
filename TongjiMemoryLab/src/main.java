@@ -1,49 +1,49 @@
-import Generator.RandomCodeGenerator;
-import Memory.EvictAlgorithm.EvictBase;
-import Memory.EvictAlgorithm.FIFOEvict;
-import Memory.EvictAlgorithm.LRUEvict;
-import Memory.HardDiskMemory;
-import Memory.PhysicsMemory;
-import Memory.VirtualMemory;
-import Memory.Worker;
-import javafx.util.Pair;
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
-import java.util.Iterator;
+import java.io.IOException;
+import java.io.InputStream;
 
-@Deprecated
-public class main {
-    public static Pair<Worker, PhysicsMemory> generateWorker(EvictBase evictAlgo) {
-        // 存储的硬件
-        HardDiskMemory hardDiskMemory = new HardDiskMemory(32);
-        // 物理内存
-        PhysicsMemory physicsMemory = new PhysicsMemory(4, hardDiskMemory, evictAlgo);
-        // 虚拟内存需要处理32指令
-        VirtualMemory virtualMemory = new VirtualMemory(32, physicsMemory);
-        // 执行的进程WORKER
-        return new Pair<>(new Worker(virtualMemory), physicsMemory);
-    }
+public class main extends Application {
 
     public static void main(String[] args) {
+        launch(args);
+    }
 
-        Pair<Worker, PhysicsMemory> pair1 = generateWorker(new LRUEvict(4));
-        Worker worker1 = pair1.getKey();
-        PhysicsMemory physicsMemory1 = pair1.getValue();
+    @Override
+    public void start(Stage primaryStage) {
 
-        Pair<Worker, PhysicsMemory> pair2 = generateWorker(new FIFOEvict(4));
-        Worker worker2 = pair2.getKey();
-        PhysicsMemory physicsMemory2 = pair2.getValue();
+        Parent root;
+        try {
 
-        // execute code of rcg
-        Iterator<Integer> rcg = new RandomCodeGenerator(320);
-        // 准备对比与对比算法
-        while (rcg.hasNext()) {
-            int value = rcg.next();
-            // worker1 执行
-            worker1.executeCode(value);
+            root = FXMLLoader.load(getClass().getResource("OSMemoryScene.fxml"));
+
+
+
+        } catch (IOException e) {
+
+            try {
+                // 在 jar 中这样加载资源
+                // https://stackoverflow.com/questions/19602727/how-to-reference-javafx-fxml-files-in-resource-folder
+                // https://stackoverflow.com/questions/26675048/classloader-getresource-doesnt-work-in-jar-file
+                InputStream stream = getClass().getClassLoader().getResourceAsStream("OSMemoryScene.fxml");
+                FXMLLoader loader = new FXMLLoader();
+                loader.load(stream);
+                root = loader.getRoot();
+            } catch (IOException e1) {
+                throw new RuntimeException(e1);
+            }
         }
+        primaryStage.setTitle("内存模拟测试");
+        Scene scene = new Scene(root, 300, 700);
+//            scene.getStylesheets().add(getClass().getResource("css/OSMemoryMain.css").toExternalForm());
 
-        // compare physics
-        System.out.println(worker1 + " used " + physicsMemory1.getPageFaultCount());
-//        System.out.println(worker2 + " used " + physicsMemory2.getPageFaultCount());
+        primaryStage.setScene(scene);
+        primaryStage.show();
+
+
     }
 }

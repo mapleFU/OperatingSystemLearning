@@ -192,4 +192,189 @@ public class RCodeGenerator implements Iterator<Integer> {
 
 flag 表示状态。这里实现了迭代器的接口，让后面能够像迭代器一样使用这个生成器。 
 
+#### LRU 算法
+
+![img](http://my.csdn.net/uploads/201205/24/1337859321_3597.png)
+
+LRU\(least-recently-use\) 算法利用了程序的局部性，根据数据的历史访问记录来进行淘汰数据，其核心思想是“如果数据最近被访问过，那么将来被访问的几率也更高”。这个算法保证：
+
+**被Evict的元素是其中中最少被使用的**
+
+一般这种算法直接实现时间复杂度相对较高，所以可以用LRU-K等算法来做优化。但是因为这个项目的物理内存空间只有4.所以我才用了链表来实现了真实的LRU算法。这个算法代码对应如下：
+
+```java
+public class LRUEvict extends EvictBase {
+    private LinkedList<Integer> intList;
+    
+    public LRUEvict(int size) {
+        // fill in lruSize
+        super(size);
+        intList = new LinkedList<>();
+        evictAlgoName = "LRU";
+    }
+
+    @Override
+    public void codeUse(int frameID) {
+        Iterator<Integer> iter = intList.iterator();
+        boolean existed = false;
+        while (iter.hasNext()) {
+            if (iter.next() == frameID) {
+                iter.remove();
+                existed = true;
+                intList.addLast(frameID);
+                break;
+            }
+        }
+        if (!existed) {
+            if (intList.size() == lruSize) {
+                throw new RuntimeException("codeuse size out of range.");
+            } else {
+                intList.addLast(frameID);
+            }
+        }
+    }
+
+    @Override
+    public int evictID() {
+        int toRemove = intList.removeFirst();
+        return toRemove;
+    }
+}
+```
+
+我用了`java.util.LinkedList`这一链表容器来实现。当一块内存被访问时，对应的`codeUse`会被调用：
+
+1. 程序查看链表中的元素是否达到内存元素的上限，没有达到上限直接插入链表末端：
+
+   ```java
+   if (!existed) {
+   	if (intList.size() == lruSize) {
+   		throw new RuntimeException("codeuse size out of range.");
+       } else {
+       	intList.addLast(frameID);
+       }
+   }
+   ```
+
+   
+
+2. 如果对应序号在内存中，程序将这个序号从链表中放到链表的表尾
+
+   ```java
+   Iterator<Integer> iter = intList.iterator();
+   boolean existed = false;
+   while (iter.hasNext()) {
+       if (iter.next() == frameID) {
+           iter.remove();
+           existed = true;
+           intList.addLast(frameID);
+           break;
+       }
+   }
+   ```
+
+那么，当需要evict元素时，链表表头的元素，就是内存块中被最少使用的元素，我们释放链表表头，并且返回对应序号即可
+
+```java
+@Override
+public int evictID() {
+    int toRemove = intList.removeFirst();
+    return toRemove;
+}
+```
+
+#### RAND 算法
+
+Evict算法目的是讲对应的内存块Evict。Rand指的是随机Evict。这种算法部分时候其实效率也不低。
+
+这里我采用Java的伪随机数来完成RAND算法
+
+```java
+import java.util.Random;
+
+public class RandEvict extends EvictBase {
+
+    private Random random;
+    public RandEvict(int lruSize) {
+        super(lruSize);
+        evictAlgoName = "Rand";
+        random = new Random();
+    }
+
+    // 什么都不做
+    @Override
+    public void codeUse(int frameID) { }
+
+    @Override
+    public int evictID() {
+        // 返回一个对应大小的数
+        return random.nextInt(lruSize);
+    }
+}
+
+```
+
+使用不会对这个代码产生什么影响，evict的时候只需要生成一个对应的随机数即可。
+
+#### FIFO 算法
+
+FIFO 即first-in-first-out, 最先evict的是最先进入内存的。这里我同样用`java.util.LinkedList`来模拟。这里用链表模拟一个逻辑上的队列。由于要查验元素是否在表内，所以不能单纯使用队列。
+
+这里的evict思路和LRU是一样的，排出表头元素（最早加入链表），每次有新元素插入表尾。与LRU的区别在于，`codeUse`调用时，找到元素则什么都不做，LRU则会将这个元素插入表尾。
+
+```java
+Iterator<Integer> iter = fifoUsedQueue.iterator();
+boolean existed = false;
+while (iter.hasNext()) {
+    if (iter.next() == frameID) {
+        existed = true;
+        break;
+    }
+}
+```
+
+整体的类：
+
+```java
+import java.util.LinkedList;
+
+public class FIFOEvict extends EvictBase {
+    /**
+     * 是FIFO的使用队列
+     */
+    private LinkedList<Integer> fifoUsedQueue;
+
+    public FIFOEvict(int lruSize) {
+        super(lruSize);
+        fifoUsedQueue = new LinkedList<>();
+        evictAlgoName = "FIFO";
+    }
+
+    @Override
+    public void codeUse(int frameID) {
+        Iterator<Integer> iter = fifoUsedQueue.iterator();
+        boolean existed = false;
+        while (iter.hasNext()) {
+            if (iter.next() == frameID) {
+                existed = true;
+                break;
+            }
+        }
+        if (!existed) {
+            if (fifoUsedQueue.size() == lruSize) {
+                throw new RuntimeException("codeuse size out of range.");
+            } else {
+                fifoUsedQueue.addLast(frameID);
+            }
+        }
+    }
+
+    @Override
+    public int evictID() {
+        Integer remove = fifoUsedQueue.removeFirst();
+        return remove;
+    }
+}
+
+```
 

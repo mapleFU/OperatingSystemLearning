@@ -79,8 +79,8 @@ public class WorkerInterface extends Application {
             if (s1 == null || s2 == null) {
                 return;
             }
-            Pair<Worker, PhysicsMemory> wp_pair1 = main.generateWorker(evictAlgoFactory.createEvict(s1));
-            Pair<Worker, PhysicsMemory> wp_pair2 = main.generateWorker(evictAlgoFactory.createEvict(s2));
+            Pair<Worker, PhysicsMemory> wp_pair1 = main0.generateWorker(evictAlgoFactory.createEvict(s1));
+            Pair<Worker, PhysicsMemory> wp_pair2 = main0.generateWorker(evictAlgoFactory.createEvict(s2));
             primaryStage.setScene(new Scene(new RunningScene(primaryStage, wp_pair1, wp_pair2)));
             primaryStage.show();
         }));

@@ -351,19 +351,7 @@ public class OSMainController implements Initializable{
     }
 
     private void updateRadioUI(int dataIndex) {
-//        rlock.lock();
         try {
-            if (piechartData.retainAll(datalist.get(dataIndex))) {
-                if (piechartData == datalist.get(dataIndex)) {
-                    System.out.println("TT");
-                } else {
-                    System.out.println("T");
-                }
-            } else {
-                System.out.println("F");
-            }
-
-
             PieChart.Data fault = new PieChart.Data("Fault", 0);
             fault.pieValueProperty().bindBidirectional(pageFaultRates.get(dataIndex));
             PieChart.Data unfault = new PieChart.Data("Unfault", 0);
@@ -383,7 +371,6 @@ public class OSMainController implements Initializable{
             System.out.println("系统继续运行");
             Platform.exit();
         }
-//        rlock.unlock();
     }
 
 
